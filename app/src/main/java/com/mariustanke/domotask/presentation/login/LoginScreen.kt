@@ -4,6 +4,7 @@ import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -52,27 +53,7 @@ fun LoginScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-            viewModel.loginWithGoogle(credential)
-        } catch (e: Exception) {
-            Log.d("DEBUG", e.toString())
-            Log.d("DEBUG", e.message.toString())
-            // Puedes usar un snackbar o similar
-        }
-    }
-
-    val gso = remember {
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("120644447690-oc56asv52vk8f3hv3hi7e94eiu3okbo0.apps.googleusercontent.com")
-            .requestEmail()
-            .build()
-    }
-
-    val googleSignInClient = remember {
-        GoogleSignIn.getClient(context, gso)
+        viewModel.handleGoogleSignInResult(result.data)
     }
 
     Scaffold { padding ->
@@ -145,20 +126,22 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                IconButton(
-                    onClick = {
-                        val intent = googleSignInClient.signInIntent
-                        googleSignInLauncher.launch(intent)
-                    },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(64.dp)
+                        .clickable {
+                            val intent = viewModel.getGoogleSignInIntent()
+                            googleSignInLauncher.launch(intent)
+                        }
                         .padding(8.dp)
                 ) {
-                    Icon(
+                    Image(
                         painter = painterResource(id = R.drawable.ic_google_logo),
-                        contentDescription = "Iniciar sesión con Google",
-                        modifier = Modifier.size(48.dp)
+                        contentDescription = "Google logo",
+                        modifier = Modifier.size(24.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Iniciar sesión con Google")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

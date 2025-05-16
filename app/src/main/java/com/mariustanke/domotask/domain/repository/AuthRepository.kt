@@ -1,0 +1,122 @@
+package com.mariustanke.domotask.domain.repository
+
+import android.content.Intent
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
+import com.mariustanke.domotask.domain.model.User
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+
+class AuthRepository @Inject constructor(
+    private val firebaseAuth: FirebaseAuth,
+    private val googleSignInClient: GoogleSignInClient,
+    private val firestore: FirebaseFirestore
+) {
+    fun getGoogleSignInIntent(): Intent = googleSignInClient.signInIntent
+
+    fun extractGoogleCredentialFromIntent(data: Intent?): AuthCredential? {
+        return try {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            val account = task.getResult(ApiException::class.java)
+            GoogleAuthProvider.getCredential(account.idToken, null)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun signInWithEmail(email: String, password: String, onResult: (Boolean, String?) -> Unit) {
+        firebaseAuth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.message)
+                }
+            }
+    }
+
+    fun signInWithGoogle(credential: AuthCredential, onResult: (Boolean, String?) -> Unit) {
+        firebaseAuth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    firebaseAuth.currentUser?.let { user ->
+                        val newUser = User(
+                            id = user.uid,
+                            name = user.displayName ?: "",
+                            email = user.email ?: ""
+                        )
+                        CoroutineScope(Dispatchers.IO).launch {
+                            saveUserToFirestore(newUser)
+                        }
+                    }
+                    onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.message)
+                }
+            }
+    }
+
+    fun registerWithEmail(
+        name: String,
+        email: String,
+        password: String,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = firebaseAuth.currentUser
+                    val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                        .setDisplayName(name)
+                        .build()
+
+                    user?.updateProfile(profileUpdates)?.addOnCompleteListener {
+                        val newUser = User(
+                            id = user.uid,
+                            name = name,
+                            email = email,
+                        )
+                        CoroutineScope(Dispatchers.IO).launch {
+                            saveUserToFirestore(newUser)
+                        }
+                        onResult(true, null)
+                    } ?: onResult(false, "No se pudo actualizar el perfil")
+                } else {
+                    onResult(false, task.exception?.message)
+                }
+            }
+    }
+
+    private suspend fun saveUserToFirestore(user: User) {
+        val userRef = firestore.collection("users").document(user.id)
+        val snapshot = userRef.get().await()
+        if (!snapshot.exists()) {
+            userRef.set(user).await()
+        }
+    }
+
+    fun signOut() {
+        firebaseAuth.signOut()
+    }
+
+    fun getCurrentUser() = firebaseAuth.currentUser
+
+    fun isUserLoggedIn(): Boolean = firebaseAuth.currentUser != null
+
+    suspend fun getUserById(uid: String): User? {
+        return try {
+            val snapshot = firestore.collection("users").document(uid).get().await()
+            snapshot.toObject(User::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+}

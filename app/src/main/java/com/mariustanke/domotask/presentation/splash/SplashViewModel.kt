@@ -3,7 +3,7 @@ package com.mariustanke.domotask.presentation.splash
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mariustanke.domotask.data.repository.AuthRepository
+import com.mariustanke.domotask.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

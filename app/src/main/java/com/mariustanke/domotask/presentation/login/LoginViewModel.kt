@@ -3,7 +3,7 @@ package com.mariustanke.domotask.presentation.login
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.AuthCredential
-import com.mariustanke.domotask.data.repository.AuthRepository
+import com.mariustanke.domotask.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,15 +24,25 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun loginWithGoogle(credential: AuthCredential) {
+    private fun loginWithGoogle(credential: AuthCredential) {
         _loginState.value = LoginResult.Loading
-        Log.d("DEBUG", "Iniciando login con Google")
         authRepository.signInWithGoogle(credential) { success, error ->
-            Log.d("DEBUG", "Resultado login Google: success=$success, error=$error")
             _loginState.value = if (success) LoginResult.Success else LoginResult.Error(error)
         }
     }
 
+    fun getGoogleSignInIntent(): android.content.Intent {
+        return authRepository.getGoogleSignInIntent()
+    }
+
+    fun handleGoogleSignInResult(data: android.content.Intent?) {
+        val credential = authRepository.extractGoogleCredentialFromIntent(data)
+        credential?.let {
+            loginWithGoogle(it)
+        } ?: run {
+            _loginState.value = LoginResult.Error("No se pudo obtener las credenciales de Google")
+        }
+    }
 }
 
 sealed class LoginResult {

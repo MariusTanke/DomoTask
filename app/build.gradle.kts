@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.auth)
     implementation(libs.google.signin)
+    implementation(libs.firebase.firestore)
 
     implementation(libs.androidx.navigation.compose)
 }

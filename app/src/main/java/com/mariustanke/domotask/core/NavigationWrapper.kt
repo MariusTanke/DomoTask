@@ -1,10 +1,14 @@
 package com.mariustanke.domotask.core
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.mariustanke.domotask.presentation.login.LoginScreen
 import com.mariustanke.domotask.presentation.main.MainScreen
+import com.mariustanke.domotask.presentation.register.RegisterScreen
 import com.mariustanke.domotask.presentation.splash.SplashScreen
+import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
 @Composable
 fun NavigationWrapper() {
@@ -39,6 +43,21 @@ fun NavigationWrapper() {
             )
         }
 
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
+                },
+                onBackToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Main.route) {
             MainScreen(
                 onLogoutClick = {
@@ -49,8 +68,16 @@ fun NavigationWrapper() {
             )
         }
 
-        composable(Screen.Register.route) {
-            // TODO: RegisterScreen()
+        composable(
+            route = Screen.Ticket.route,
+            arguments = listOf(
+                navArgument("boardId") { type = NavType.StringType },
+                navArgument("ticketId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
+            val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
+            TicketScreen(boardId = boardId, ticketId = ticketId)
         }
     }
 }
