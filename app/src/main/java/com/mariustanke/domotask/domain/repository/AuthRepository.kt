@@ -9,10 +9,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mariustanke.domotask.domain.model.User
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
@@ -43,23 +39,26 @@ class AuthRepository @Inject constructor(
             }
     }
 
-    fun signInWithGoogle(credential: AuthCredential, onResult: (Boolean, String?) -> Unit) {
+    fun signInWithGoogle(
+        credential: AuthCredential,
+        onResult: (Boolean, String?, User?) -> Unit
+    ) {
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    firebaseAuth.currentUser?.let { user ->
+                    val user = getCurrentUser()
+                    if (user != null) {
                         val newUser = User(
                             id = user.uid,
                             name = user.displayName ?: "",
                             email = user.email ?: ""
                         )
-                        CoroutineScope(Dispatchers.IO).launch {
-                            saveUserToFirestore(newUser)
-                        }
+                        onResult(true, null, newUser)
+                    } else {
+                        onResult(false, "Usuario nulo tras login", null)
                     }
-                    onResult(true, null)
                 } else {
-                    onResult(false, task.exception?.message)
+                    onResult(false, task.exception?.message, null)
                 }
             }
     }
@@ -68,12 +67,12 @@ class AuthRepository @Inject constructor(
         name: String,
         email: String,
         password: String,
-        onResult: (Boolean, String?) -> Unit
+        onResult: (Boolean, String?, User?) -> Unit
     ) {
         firebaseAuth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val user = firebaseAuth.currentUser
+                    val user = getCurrentUser()
                     val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
                         .setDisplayName(name)
                         .build()
@@ -82,41 +81,17 @@ class AuthRepository @Inject constructor(
                         val newUser = User(
                             id = user.uid,
                             name = name,
-                            email = email,
+                            email = email
                         )
-                        CoroutineScope(Dispatchers.IO).launch {
-                            saveUserToFirestore(newUser)
-                        }
-                        onResult(true, null)
-                    } ?: onResult(false, "No se pudo actualizar el perfil")
+                        onResult(true, null, newUser)
+                    } ?: onResult(false, "No se pudo actualizar el perfil", null)
                 } else {
-                    onResult(false, task.exception?.message)
+                    onResult(false, task.exception?.message, null)
                 }
             }
-    }
-
-    private suspend fun saveUserToFirestore(user: User) {
-        val userRef = firestore.collection("users").document(user.id)
-        val snapshot = userRef.get().await()
-        if (!snapshot.exists()) {
-            userRef.set(user).await()
-        }
-    }
-
-    fun signOut() {
-        firebaseAuth.signOut()
     }
 
     fun getCurrentUser() = firebaseAuth.currentUser
 
     fun isUserLoggedIn(): Boolean = firebaseAuth.currentUser != null
-
-    suspend fun getUserById(uid: String): User? {
-        return try {
-            val snapshot = firestore.collection("users").document(uid).get().await()
-            snapshot.toObject(User::class.java)
-        } catch (e: Exception) {
-            null
-        }
-    }
 }

@@ -2,8 +2,11 @@ package com.mariustanke.domotask.di
 
 import com.mariustanke.domotask.domain.repository.AuthRepository
 import com.mariustanke.domotask.domain.repository.BoardRepository
-import com.mariustanke.domotask.domain.usecase.auth.AuthUseCases
+import com.mariustanke.domotask.domain.repository.UserRepository
+import com.mariustanke.domotask.domain.usecase.auth.CreateUserUseCase
+import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.auth.GetUserUseCase
+import com.mariustanke.domotask.domain.usecase.auth.UpdateFcmTokenUseCase
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import com.mariustanke.domotask.domain.usecase.board.CreateBoardUseCase
 import com.mariustanke.domotask.domain.usecase.board.CreateTicketUseCase
@@ -57,10 +60,12 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideAuthUseCases(
-        authRepository: AuthRepository
-    ): AuthUseCases {
-        return AuthUseCases(
-            getUser = GetUserUseCase(authRepository)
+        userRepository: UserRepository
+    ): UserUseCases {
+        return UserUseCases(
+            getUser = GetUserUseCase(userRepository),
+            createUser = CreateUserUseCase(userRepository),
+            updateFcmToken = UpdateFcmTokenUseCase(userRepository)
         )
     }
 }

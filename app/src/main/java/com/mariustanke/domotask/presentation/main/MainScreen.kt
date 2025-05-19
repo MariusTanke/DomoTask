@@ -10,11 +10,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.google.firebase.auth.FirebaseAuth
 import com.mariustanke.domotask.core.Screen
 import com.mariustanke.domotask.presentation.board.BoardScreen
 import com.mariustanke.domotask.presentation.home.HomeScreen
@@ -24,6 +24,7 @@ import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
 @Composable
 fun MainScreen(
+    viewModel: MainViewModel = hiltViewModel(),
     onLogoutClick: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -44,8 +45,9 @@ fun MainScreen(
                         selected = currentDestination == item.route,
                         onClick = {
                             if (item.route == "logout") {
-                                FirebaseAuth.getInstance().signOut()
+                                viewModel.signOut()
                                 onLogoutClick()
+
                             } else {
                                 navController.navigate(item.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -89,7 +91,8 @@ fun MainScreen(
                     boardName = boardName,
                     onTicketClick = { bId, tId ->
                         navController.navigate(Screen.Ticket.createRoute(bId, tId))
-                    }
+                    },
+                    onBackClick = { navController.popBackStack() }
                 )
             }
             composable(
@@ -101,7 +104,9 @@ fun MainScreen(
             ) { backStackEntry ->
                 val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
                 val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
-                TicketScreen(boardId = boardId, ticketId = ticketId)
+                TicketScreen(boardId = boardId, ticketId = ticketId, onBackClick = {
+                    navController.popBackStack()
+                })
             }
             composable(Screen.Profile.route) { ProfileScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }

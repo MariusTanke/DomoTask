@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mariustanke.domotask.domain.model.Board
 import com.mariustanke.domotask.domain.repository.AuthRepository
+import com.mariustanke.domotask.domain.repository.UserRepository
 import com.mariustanke.domotask.domain.uiModels.BoardUiModel
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val boardUseCases: BoardUseCases
 ) : ViewModel() {
 
@@ -23,7 +25,7 @@ class HomeViewModel @Inject constructor(
             val filtered = list.filter { it.members.contains(currentUserId) }
 
             filtered.map { board ->
-                val name = authRepository.getUserById(board.createdBy)?.name ?: board.createdBy
+                val name = userRepository.getUserById(board.createdBy)?.name ?: board.createdBy
                 BoardUiModel(
                     id = board.id,
                     name = board.name,

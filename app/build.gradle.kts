@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -73,6 +74,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.google.signin)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
 
     implementation(libs.androidx.navigation.compose)
 }

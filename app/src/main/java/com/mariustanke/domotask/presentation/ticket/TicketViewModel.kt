@@ -6,8 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.mariustanke.domotask.domain.model.Comment
 import com.mariustanke.domotask.domain.model.Ticket
-import com.mariustanke.domotask.domain.repository.AuthRepository
-import com.mariustanke.domotask.domain.usecase.auth.AuthUseCases
+import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import com.mariustanke.domotask.domain.usecase.comment.CommentUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +20,7 @@ import javax.inject.Inject
 class TicketViewModel @Inject constructor(
     private val boardUseCases: BoardUseCases,
     private val commentUseCases: CommentUseCases,
-    private val authUseCases: AuthUseCases,
+    private val userUseCases: UserUseCases,
     private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
@@ -71,13 +70,13 @@ class TicketViewModel @Inject constructor(
 
     fun getUser(userId: String) {
         viewModelScope.launch {
-            authUseCases.getUser(userId)
+            userUseCases.getUser(userId)
         }
     }
 
     fun getUserName(userId: String, onResult: (String) -> Unit) {
         viewModelScope.launch {
-            val user = authUseCases.getUser(userId)
+            val user = userUseCases.getUser(userId)
             onResult(user?.name ?: "Desconocido")
         }
     }

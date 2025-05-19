@@ -77,7 +77,9 @@ fun NavigationWrapper() {
         ) { backStackEntry ->
             val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
             val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
-            TicketScreen(boardId = boardId, ticketId = ticketId)
+            TicketScreen(boardId = boardId, ticketId = ticketId, {
+                navController.popBackStack()
+            })
         }
     }
 }

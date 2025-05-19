@@ -4,8 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -17,6 +19,7 @@ fun BoardScreen(
     boardId: String,
     boardName: String,
     viewModel: BoardViewModel = hiltViewModel(),
+    onBackClick: () -> Unit,
     onTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
@@ -35,10 +38,46 @@ fun BoardScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = { Text(boardName) }
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                navigationIcon = {
+                    IconButton(
+                        onClick = { onBackClick() },
+                        modifier = Modifier.fillMaxHeight()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver atrás"
+                        )
+                    }
+                },
+                title = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = boardName,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
+
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
