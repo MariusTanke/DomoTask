@@ -27,6 +27,6 @@ fun SplashScreen(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text("Mi App Genial", style = MaterialTheme.typography.headlineLarge)
+        Text("DOMES Task !!", style = MaterialTheme.typography.headlineLarge)
     }
 }

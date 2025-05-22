@@ -97,4 +97,59 @@ class BoardViewModel @Inject constructor(
             _members.update { list -> list.filterNot { it.id == userId } }
         }
     }
+
+    private fun syncOrdersAndPersist(boardId: String, modifiedList: List<Status>) = viewModelScope.launch {
+        val reindexed = modifiedList
+            .sortedBy { it.order }
+            .mapIndexed { index, s ->
+                if (s.order != index + 1) s.copy(order = index + 1) else s
+            }
+
+        reindexed.forEach { status ->
+            boardUseCases.updateBoardStatus(
+                boardId,
+                status
+            )
+        }
+    }
+
+    fun createBoardStatus(boardId: String, newStatusParam: Status) {
+        viewModelScope.launch {
+            val current = statuses.value
+                .sortedBy { it.order }
+                .toMutableList()
+
+            val insertIndex = (newStatusParam.order - 1).coerceIn(0, current.size)
+            current.add(insertIndex, newStatusParam)
+            syncOrdersAndPersist(boardId, current)
+        }
+    }
+
+    fun updateBoardStatus(boardId: String, updatedStatus: Status) {
+        viewModelScope.launch {
+            val current = statuses.value
+                .sortedBy { it.order }
+                .toMutableList()
+
+            val oldIndex = current.indexOfFirst { it.id == updatedStatus.id }
+            if (oldIndex == -1) return@launch
+
+            current.removeAt(oldIndex)
+            val newIndex = (updatedStatus.order - 1).coerceIn(0, current.size)
+            current.add(newIndex, updatedStatus)
+
+            syncOrdersAndPersist(boardId, current)
+        }
+    }
+
+    fun removeBoardStatus(boardId: String, statusId: String) {
+        viewModelScope.launch {
+            val current = statuses.value
+                .sortedBy { it.order }
+                .toMutableList()
+            current.removeAll { it.id == statusId }
+            boardUseCases.deleteBoardStatus(boardId, statusId)
+            syncOrdersAndPersist(boardId, current)
+        }
+    }
 }

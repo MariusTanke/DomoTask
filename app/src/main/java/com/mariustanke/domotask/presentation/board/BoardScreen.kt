@@ -14,7 +14,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -38,7 +41,12 @@ fun BoardScreen(
     onBackClick: () -> Unit,
     onTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
+    val boardData by viewModel.board.collectAsState()
+
     val context = LocalContext.current
+    var showAddStatusDialog by remember { mutableStateOf(false) }
+    var newStatusName by remember { mutableStateOf("") }
+    var newStatusOrder by remember { mutableIntStateOf(1) }
     var showDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showMemberDialog by remember { mutableStateOf(false) }
@@ -68,17 +76,31 @@ fun BoardScreen(
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         topBar = {
-            TopBar(
-                boardName = boardName,
-                showMenu = showMenu,
-                onBackClick = onBackClick,
-                onMemberManagementClick = {
-                    showMemberDialog = true
-                    showMenu = false
-                },
-                onMenuClick = { showMenu = true },
-                onDismissMenu = { showMenu = false }
-            )
+            viewModel.currentUser?.uid?.let {
+                TopBar(
+                    boardName = boardName,
+                    showMenu = showMenu,
+                    onBackClick = onBackClick,
+                    onMemberManagementClick = {
+                        showMemberDialog = true
+                        showMenu = false
+                    },
+                    onMenuClick = { showMenu = true },
+                    onDismissMenu = { showMenu = false },
+                    boardOwnerId = boardData?.createdBy ?: "",
+                    onLeaveBoard = {
+                        viewModel.removeMember(
+                            boardId,
+                            viewModel.currentUser?.uid.orEmpty()
+                        )
+                    },
+                    currentUserId = it,
+                    onAddStatusClick = {
+                        showAddStatusDialog = true
+                        showMenu = false
+                    }
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
@@ -103,18 +125,20 @@ fun BoardScreen(
             ) {
                 statuses.sortedBy { it.order }.forEach { status ->
                     val columnTickets = tickets.filter { it.status == status.id }
-                    TicketColumn(
-                        status = status,
-                        tickets = columnTickets,
-                        allStatuses = statuses,
-                        viewModel = viewModel,
-                        boardId = boardId,
-                        onTicketClick = onTicketClick
-                    )
+                    boardData?.let {
+                        TicketColumn(
+                            status = status,
+                            tickets = columnTickets,
+                            allStatuses = statuses,
+                            viewModel = viewModel,
+                            boardId = boardId,
+                            onTicketClick = onTicketClick,
+                            boardOwnerId = it.createdBy
+                        )
+                    }
                 }
             }
 
-            // Crear ticket...
             if (showDialog) {
                 CreateTicketDialog(
                     onCreate = { title, desc, urg, assigned ->
@@ -136,7 +160,44 @@ fun BoardScreen(
                 )
             }
 
-            // Diálogo de Miembros
+            if (showAddStatusDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAddStatusDialog = false },
+                    title = { Text("Añadir Estado") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = newStatusName,
+                                onValueChange = { newStatusName = it },
+                                label = { Text("Nombre del estado") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = newStatusOrder.toString(),
+                                onValueChange = {
+                                    newStatusOrder = it.toIntOrNull() ?: newStatusOrder
+                                },
+                                label = { Text("Orden") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.createBoardStatus(
+                                boardId,
+                                Status(name = newStatusName, order = newStatusOrder)
+                            )
+                            showAddStatusDialog = false
+                        }) { Text("Añadir") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAddStatusDialog = false }) { Text("Cancelar") }
+                    }
+                )
+            }
+
             if (showMemberDialog) {
                 val maxVisible = 5
                 val listModifier = if (members.size > maxVisible) {
@@ -170,22 +231,33 @@ fun BoardScreen(
                                                 .padding(8.dp)
                                         ) {
                                             Icon(
-                                                Icons.Default.Person,
+                                                imageVector = Icons.Default.Person,
                                                 contentDescription = "Avatar",
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(32.dp)
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = user.name,
+                                                style = MaterialTheme.typography.bodyLarge,
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            IconButton(onClick = {
-                                                viewModel.removeMember(boardId, user.id)
-                                            }) {
-                                                Icon(
-                                                    Icons.Default.Delete,
-                                                    contentDescription = "Borrar miembro"
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .padding(start = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (user.id != viewModel.currentUser?.uid) {
+                                                    IconButton(onClick = {
+                                                        viewModel.removeMember(boardId, user.id)
+                                                    }) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Delete,
+                                                            contentDescription = "Borrar miembro",
+                                                            modifier = Modifier.size(28.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -227,12 +299,15 @@ fun TopBar(
     onMemberManagementClick: () -> Unit,
     onMenuClick: () -> Unit,
     onDismissMenu: () -> Unit,
-    onBackClick: () -> Unit
+    onAddStatusClick: () -> Unit,
+    onBackClick: () -> Unit,
+    currentUserId: String,
+    boardOwnerId: String,
+    onLeaveBoard: () -> Unit
 ) {
     var barWidthPx by remember { mutableStateOf(0) }
     var menuWidthPx by remember { mutableStateOf(0) }
     val density = LocalDensity.current
-
     val offsetDp by derivedStateOf {
         val dx = (barWidthPx - menuWidthPx).coerceAtLeast(0)
         with(density) { dx.toDp() }
@@ -245,48 +320,49 @@ fun TopBar(
             .background(MaterialTheme.colorScheme.primaryContainer)
             .onGloballyPositioned { barWidthPx = it.size.width }
     ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
+        IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart)) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Volver atrás",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-
         Text(
-            text = boardName,
+            boardName,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.align(Alignment.Center)
         )
-
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.align(Alignment.CenterEnd)
-        ) {
+        IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.CenterEnd)) {
             Icon(
-                Icons.Filled.MoreVert,
+                Icons.Default.MoreVert,
                 contentDescription = "Más opciones",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = onDismissMenu,
-            modifier = Modifier.onGloballyPositioned { menuWidthPx = it.size.width },
-            offset = DpOffset(x = offsetDp, y = 0.dp)
+            offset = DpOffset(x = offsetDp, y = 0.dp),
+            modifier = Modifier.onGloballyPositioned { menuWidthPx = it.size.width }
         ) {
-            DropdownMenuItem(text = { Text("Gestionar miembros") }, onClick = onMemberManagementClick)
-            Divider()
-            DropdownMenuItem(text = { Text("Editar tabla") }, onClick = onDismissMenu)
-            Divider()
-            DropdownMenuItem(text = { Text("Añadir Estado") }, onClick = onDismissMenu)
-            Divider()
-            DropdownMenuItem(text = { Text("Eliminar tabla") }, onClick = onDismissMenu)
+            if (currentUserId == boardOwnerId) {
+                DropdownMenuItem(
+                    text = { Text("Gestionar miembros") },
+                    onClick = onMemberManagementClick
+                )
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Editar tabla") }, onClick = onDismissMenu)
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Añadir Estado") }, onClick = onAddStatusClick)
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Eliminar tabla") }, onClick = onDismissMenu)
+            } else {
+                DropdownMenuItem(text = { Text("Salir de la tabla") }, onClick = {
+                    onLeaveBoard()
+                    onBackClick()
+                })
+            }
         }
     }
 }
@@ -298,8 +374,13 @@ fun TicketColumn(
     allStatuses: List<Status>,
     viewModel: BoardViewModel,
     boardId: String,
+    boardOwnerId: String,
     onTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
+    var editing by remember { mutableStateOf(false) }
+    var editName by remember { mutableStateOf(status.name) }
+    var editOrder by remember { mutableIntStateOf(status.order) }
+
     Card(
         modifier = Modifier
             .width(280.dp)
@@ -313,17 +394,86 @@ fun TicketColumn(
                 .verticalScroll(rememberScrollState())
                 .padding(12.dp)
         ) {
-            Text(status.name, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
+            if (viewModel.currentUser?.uid == boardOwnerId) {
+                if (editing) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = editName,
+                            onValueChange = { editName = it },
+                            label = { Text("Nombre") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        )
+                        OutlinedTextField(
+                            value = editOrder.toString(),
+                            onValueChange = { editOrder = it.toIntOrNull() ?: editOrder },
+                            label = { Text("Orden") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconButton(onClick = {
+                                viewModel.updateBoardStatus(
+                                    boardId,
+                                    status.copy(name = editName, order = editOrder)
+                                )
+                                editing = false
+                            }) {
+                                Icon(Icons.Default.Check, contentDescription = "Guardar")
+                            }
+                            IconButton(onClick = {
+                                editName = status.name
+                                editOrder = status.order
+                                editing = false
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancelar")
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text(status.name, style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = { editing = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar columna")
+                        }
+                        if (tickets.isEmpty()) {
+                            IconButton(onClick = {
+                                viewModel.removeBoardStatus(boardId, status.id)
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar columna")
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider()
+            } else {
+                Text(status.name, style = MaterialTheme.typography.titleLarge)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
             tickets.forEach { ticket ->
                 PostItTicketCard(
                     ticket = ticket,
                     allStatuses = allStatuses,
                     currentUserId = viewModel.currentUser?.uid.orEmpty(),
                     onClick = { onTicketClick(boardId, ticket.id) },
-                    onMove = { newStatus -> viewModel.updateTicket(boardId, ticket.copy(status = newStatus)) },
+                    onMove = { newStatus ->
+                        viewModel.updateTicket(boardId, ticket.copy(status = newStatus))
+                    },
                     onDelete = { viewModel.deleteTicket(boardId, ticket.id) }
                 )
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -345,7 +495,11 @@ fun PostItTicketCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
-                .combinedClickable(onClick = onClick, onLongClick = { expanded = true }),
+                .combinedClickable(onClick = onClick, onLongClick = {
+                    if (ticket.createdBy == currentUserId) {
+                        expanded = true
+                    }
+                }),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
@@ -357,7 +511,10 @@ fun PostItTicketCard(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("Urgencia: ${ticket.urgency}", style = MaterialTheme.typography.labelSmall)
-                Text("Asignado a: ${ticket.assignedTo}", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "Asignado a: ${ticket.assignedTo}",
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         }
         DropdownMenu(
@@ -419,7 +576,9 @@ fun CreateTicketDialog(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp),
                     maxLines = 5
                 )
                 Spacer(Modifier.height(8.dp))
@@ -432,7 +591,9 @@ fun CreateTicketDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Urgencia") },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,

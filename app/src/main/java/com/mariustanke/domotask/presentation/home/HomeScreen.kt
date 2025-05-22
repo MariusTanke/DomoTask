@@ -1,7 +1,6 @@
 package com.mariustanke.domotask.presentation.home
 
 import android.annotation.SuppressLint
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -10,23 +9,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mariustanke.domotask.domain.uiModels.BoardUiModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -34,6 +29,7 @@ fun HomeScreen(
 ) {
     val user by viewModel.user.collectAsState()
     val boards by viewModel.boards.collectAsState()
+    val invitations by viewModel.invitations.collectAsState()
 
     val context = LocalContext.current
 
@@ -60,15 +56,12 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("INICIO") },
-                actions = {
-                    if (user?.invitations?.isNotEmpty() == true) {
-                        IconButton(onClick = { showInviteDialog = true }) {
-                            Icon(Icons.Default.Email, contentDescription = "Invitaciones")
-                        }
-                    }
-                }
+            TopBar(
+                title = "INICIO",
+                invitations = user?.invitations.orEmpty(),
+                onInviteClick = {
+                    showInviteDialog = true
+                },
             )
         },
         floatingActionButton = {
@@ -144,7 +137,7 @@ fun HomeScreen(
                 title = { Text("Invitaciones pendientes") },
                 text = {
                     Column(Modifier.animateContentSize()) {
-                        user?.invitations?.forEach { board ->
+                        invitations.forEach { boardUi ->
                             Card(
                                 Modifier
                                     .fillMaxWidth()
@@ -152,18 +145,39 @@ fun HomeScreen(
                                 elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Row(
-                                    Modifier.fillMaxWidth().padding(8.dp),
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(board, modifier = Modifier.weight(1f))
-                                    TextButton(onClick = {
-                                        viewModel.acceptInvitation(board)
-                                        showInviteDialog = false
+                                    Text(boardUi.name, modifier = Modifier.weight(1f))
 
-                                    }) { Text("Aceptar") }
-                                    TextButton(onClick = {
-                                        viewModel.rejectInvitation(board)
-                                    }) { Text("Rechazar") }
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.acceptInvitation(boardUi.id)
+                                            showInviteDialog = false
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Aceptar invitación",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    Spacer(Modifier.width(2.dp))
+
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.rejectInvitation(boardUi.id)
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Rechazar invitación",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -171,7 +185,9 @@ fun HomeScreen(
                 },
                 confirmButton = {},
                 dismissButton = {
-                    TextButton(onClick = { showInviteDialog = false }) { Text("Cerrar") }
+                    TextButton(onClick = { showInviteDialog = false }) {
+                        Text("Cerrar")
+                    }
                 }
             )
         }
@@ -214,4 +230,43 @@ fun BoardCard(
     }
 }
 
+@SuppressLint("UnrememberedMutableState")
+@Composable
+fun TopBar(
+    title: String,
+    invitations: List<String> = emptyList(),
+    onInviteClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp)
+        )
 
+        if (invitations.isNotEmpty()) {
+            OutlinedButton(
+                onClick = onInviteClick,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp),
+                shape = MaterialTheme.shapes.small,
+                border = ButtonDefaults.outlinedButtonBorder
+            ) {
+                Icon(
+                    Icons.Default.Email,
+                    contentDescription = "Invitaciones",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(Modifier.width(4.dp))
+                Text("${invitations.size}", color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
+    }
+}
