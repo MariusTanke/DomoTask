@@ -5,7 +5,7 @@ data class Ticket(
     val title: String = "",
     val description: String = "",
     val urgency: String = "",
-    val status: String = "todo",
+    val status: String = "",
     val createdBy: String = "",
     val assignedTo: String = "",
     val edited: Boolean = false,

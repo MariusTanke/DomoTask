@@ -2,6 +2,7 @@ package com.mariustanke.domotask.domain.repository
 
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mariustanke.domotask.domain.model.User
 import kotlinx.coroutines.tasks.await
@@ -22,7 +23,7 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun generateUniqueInvitationCode(): String {
+    private suspend fun generateUniqueInvitationCode(): String {
         val charset = ('A'..'Z') + ('0'..'9')
         var code: String
         var exists: Boolean
@@ -60,5 +61,36 @@ class UserRepository @Inject constructor(
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    suspend fun getUserByInvitationCode(code: String): User? {
+        val snap = usersCollection.whereEqualTo("invitationCode", code).get().await()
+        return snap.documents
+            .firstOrNull()
+            ?.toObject(User::class.java)
+            ?.copy(id = snap.documents.first().id)
+    }
+
+    suspend fun addInvitation(userId: String, boardId: String) {
+        val userRef = usersCollection.document(userId)
+        firestore.runTransaction { tx ->
+            val uSnap = tx.get(userRef)
+            val current = uSnap.get("invitations") as? List<String> ?: emptyList()
+            if (!current.contains(boardId)) {
+                val updated = current + boardId
+                tx.update(userRef, "invitations", updated)
+            }
+        }.await()
+    }
+
+    suspend fun removeInvitation(userId: String, boardId: String) {
+        val userRef = usersCollection.document(userId)
+        firestore.runTransaction { tx ->
+            val uSnap = tx.get(userRef)
+            val current = uSnap.get("invitations") as? List<String> ?: emptyList()
+            if (current.contains(boardId)) {
+                tx.update(userRef, "invitations", current - boardId)
+            }
+        }.await()
     }
 }
