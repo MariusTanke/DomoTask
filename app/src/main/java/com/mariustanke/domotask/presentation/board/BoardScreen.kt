@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -30,8 +31,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mariustanke.domotask.domain.enums.UrgencyEnum
 import com.mariustanke.domotask.domain.model.Status
 import com.mariustanke.domotask.domain.model.Ticket
+import com.mariustanke.domotask.domain.model.User
 
 @Composable
 fun BoardScreen(
@@ -128,6 +131,7 @@ fun BoardScreen(
                     boardData?.let {
                         TicketColumn(
                             status = status,
+                            members = members,
                             tickets = columnTickets,
                             allStatuses = statuses,
                             viewModel = viewModel,
@@ -156,6 +160,7 @@ fun BoardScreen(
                         )
                         showDialog = false
                     },
+                    members = members,
                     onDismiss = { showDialog = false }
                 )
             }
@@ -371,6 +376,7 @@ fun TopBar(
 fun TicketColumn(
     status: Status,
     tickets: List<Ticket>,
+    members: List<User>,
     allStatuses: List<Status>,
     viewModel: BoardViewModel,
     boardId: String,
@@ -467,6 +473,7 @@ fun TicketColumn(
                     ticket = ticket,
                     allStatuses = allStatuses,
                     currentUserId = viewModel.currentUser?.uid.orEmpty(),
+                    asignedToName = members.find { it.id == ticket.assignedTo}?.name ?: "",
                     onClick = { onTicketClick(boardId, ticket.id) },
                     onMove = { newStatus ->
                         viewModel.updateTicket(boardId, ticket.copy(status = newStatus))
@@ -483,6 +490,7 @@ fun TicketColumn(
 @Composable
 fun PostItTicketCard(
     ticket: Ticket,
+    asignedToName: String,
     allStatuses: List<Status>,
     currentUserId: String,
     onClick: () -> Unit,
@@ -510,11 +518,19 @@ fun PostItTicketCard(
                     Text(ticket.description, style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Urgencia: ${ticket.urgency}", style = MaterialTheme.typography.labelSmall)
-                Text(
-                    "Asignado a: ${ticket.assignedTo}",
-                    style = MaterialTheme.typography.labelSmall
-                )
+                val urgText = UrgencyEnum.entries
+                    .find { it.value == ticket.urgency }
+                    ?.label
+                    ?: "Desconocida"
+
+                Text("Urgencia: $urgText", style = MaterialTheme.typography.labelSmall)
+
+                if (asignedToName.isNotEmpty()){
+                    Text(
+                        "Asignado a: $asignedToName",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
         DropdownMenu(
@@ -550,15 +566,18 @@ fun PostItTicketCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTicketDialog(
-    onCreate: (String, String, String, String) -> Unit,
+    onCreate: (title: String, desc: String, urgencyLevel: Int, assignedTo: String) -> Unit,
+    members: List<User>,
     onDismiss: () -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    val urgencies = listOf("Alta", "Media", "Baja")
-    var selectedUrgency by remember { mutableStateOf(urgencies[1]) }
-    var assignedTo by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    val urgencies = UrgencyEnum.entries
+    var selectedUrgency by remember { mutableStateOf(UrgencyEnum.NORMAL) }
+
+    var urgExpanded by remember { mutableStateOf(false) }
+    var memExpanded by remember { mutableStateOf(false) }
+    var assignedToId by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -571,7 +590,9 @@ fun CreateTicketDialog(
                     label = { Text("Título") },
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 Spacer(Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -581,46 +602,84 @@ fun CreateTicketDialog(
                         .heightIn(min = 100.dp),
                     maxLines = 5
                 )
+
                 Spacer(Modifier.height(8.dp))
+
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    expanded = urgExpanded,
+                    onExpandedChange = { urgExpanded = !urgExpanded },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = selectedUrgency,
+                        value = selectedUrgency.label,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Urgencia") },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
+                            .clickable { urgExpanded = true }
                     )
                     ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        expanded = urgExpanded,
+                        onDismissRequest = { urgExpanded = false }
                     ) {
                         urgencies.forEach { urg ->
                             DropdownMenuItem(
-                                text = { Text(urg) },
+                                text = { Text(urg.label) },
                                 onClick = {
                                     selectedUrgency = urg
-                                    expanded = false
+                                    urgExpanded = false
                                 }
                             )
                         }
                     }
                 }
+
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = assignedTo,
-                    onValueChange = { assignedTo = it },
-                    label = { Text("Asignado a") },
+
+                ExposedDropdownMenuBox(
+                    expanded = memExpanded,
+                    onExpandedChange = { memExpanded = !memExpanded },
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    OutlinedTextField(
+                        value = members.find { it.id == assignedToId }?.name
+                            ?: "Selecciona miembro",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Asignado a") },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                            .clickable { memExpanded = true }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = memExpanded,
+                        onDismissRequest = { memExpanded = false }
+                    ) {
+                        members.forEach { member ->
+                            DropdownMenuItem(
+                                text = { Text(member.name) },
+                                onClick = {
+                                    assignedToId = member.id
+                                    memExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onCreate(title, description, selectedUrgency, assignedTo) }) {
+            TextButton(onClick = {
+                onCreate(
+                    title,
+                    description,
+                    selectedUrgency.value,
+                    assignedToId
+                )
+            }) {
                 Text("Crear")
             }
         },

@@ -56,6 +56,10 @@ dependencies {
     implementation(libs.androidx.animation.android)
     implementation(libs.androidx.foundation.android)
     implementation(libs.androidx.foundation.android)
+    implementation(libs.play.services.fido)
+    implementation(libs.play.services.fido)
+    implementation(libs.play.services.fido)
+    implementation(libs.play.services.fido)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

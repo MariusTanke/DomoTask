@@ -60,7 +60,7 @@ object UseCaseModule {
             deleteBoardStatus = DeleteBoardStatusUseCase(boardRepository),
             updateBoard = UpdateBoardUseCase(boardRepository),
             deleteBoard = DeleteBoardUseCase(boardRepository),
-            inviteUserToBoardUseCase = InviteUserToBoardUseCase(userRepository, boardRepository),
+            inviteUserToBoardUseCase = InviteUserToBoardUseCase(userRepository),
             acceptInvitationUseCase = AcceptInvitationUseCase(userRepository, boardRepository),
             removeMemberFromBoardUseCase = RemoveMemberFromBoardUseCase(boardRepository),
             rejectInvitationUseCase = RejectInvitationUseCase(userRepository)

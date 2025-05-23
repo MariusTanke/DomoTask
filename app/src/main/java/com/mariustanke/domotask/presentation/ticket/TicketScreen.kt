@@ -2,9 +2,10 @@ package com.mariustanke.domotask.presentation.ticket
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,15 +13,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mariustanke.domotask.domain.enums.UrgencyEnum
 import com.mariustanke.domotask.domain.model.Comment
 import com.mariustanke.domotask.domain.model.Ticket
 import com.mariustanke.domotask.domain.model.User
@@ -77,7 +81,7 @@ fun TicketScaffold(
     var title by remember { mutableStateOf(ticket.title) }
     var editingTitle by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf(ticket.description) }
-    var urgency by remember { mutableStateOf(ticket.urgency) }
+    var urgency by remember { mutableIntStateOf(ticket.urgency) }
     var assignedTo by remember { mutableStateOf(ticket.assignedTo) }
     var newComment by remember { mutableStateOf("") }
     var editingCommentId by remember { mutableStateOf<String?>(null) }
@@ -102,12 +106,35 @@ fun TicketScaffold(
                 },
                 onBackClick = onBackClick
             )
+        },
+        bottomBar = {
+            CommentInput(
+                newComment = newComment,
+                onCommentChange = { newComment = it },
+                onAddFileClick = {  },
+                onSendClick = {
+                    if (newComment.isNotBlank()) {
+                        onAddComment(
+                            Comment(
+                                content = newComment,
+                                createdBy = currentUserId,
+                                createdAt = System.currentTimeMillis()
+                            )
+                        )
+                        newComment = ""
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp)
+            )
         }
-    ) { padding ->
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
@@ -130,79 +157,65 @@ fun TicketScaffold(
                     onFieldChange = { newTitle, newDesc, newUrg, newAssigned ->
                         title = newTitle
                         description = newDesc
-                        urgency = newUrg
+                        urgency = newUrg.toInt()
                         assignedTo = newAssigned
                     },
                     getUserName = getUserName
                 )
-            }
-
-            CommentInput(newComment = newComment, onCommentChange = { newComment = it }) {
-                if (newComment.isNotBlank()) {
-                    onAddComment(
-                        Comment(
-                            content = newComment,
-                            createdBy = currentUserId,
-                            createdAt = System.currentTimeMillis()
-                        )
-                    )
-                    newComment = ""
-                }
             }
         }
     }
 }
 
 @Composable
-fun MemberDropdown(
-    members: List<User>,
-    selectedId: String,
-    onMemberSelected: (String) -> Unit
+fun CommentInput(
+    newComment: String,
+    onCommentChange: (String) -> Unit,
+    onAddFileClick: () -> Unit,
+    onSendClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedName = members.find { it.id == selectedId }?.name ?: "Selecciona miembro"
-
-    Box(modifier = Modifier
-        .fillMaxWidth()
+    Row(
+        modifier = modifier.height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        OutlinedTextField(
+            value = newComment,
+            onValueChange = onCommentChange,
+            singleLine = false,
+            label = { Text("Nuevo comentario") },
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .heightIn(min = 60.dp)
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        FilledIconButton(
+            onClick = onAddFileClick,
+            modifier = Modifier
+                .height(56.dp)
+                .aspectRatio(1f)
+                .padding(top = 6.dp),
+            shape = RoundedCornerShape(4.dp)
         ) {
-            Text(
-                text = selectedName,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Abrir menú",
-            )
+            Icon(Icons.Default.AccountBox, contentDescription = "Adjuntar archivo")
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
+        Spacer(Modifier.width(8.dp))
+
+        FilledIconButton(
+            onClick = onSendClick,
             modifier = Modifier
-                .fillMaxWidth()
+                .height(56.dp)
+                .aspectRatio(1f)
+                .padding(top = 6.dp),
+            shape = RoundedCornerShape(4.dp)
         ) {
-            members.forEach { member ->
-                DropdownMenuItem(
-                    text = { Text(member.name) },
-                    onClick = {
-                        onMemberSelected(member.id)
-                        expanded = false
-                    }
-                )
-            }
+            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
         }
     }
 }
-
 
 @Composable
 fun TicketTopBar(
@@ -229,7 +242,9 @@ fun TicketTopBar(
             text = if (editingTitle) "Editando título" else title,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.align(Alignment.Center).clickable { onTitleClick() }
+            modifier = Modifier
+                .align(Alignment.Center)
+                .clickable { onTitleClick() }
         )
         IconButton(onClick = onDoneClick, modifier = Modifier.align(Alignment.CenterEnd)) {
             Icon(
@@ -241,12 +256,13 @@ fun TicketTopBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketContent(
     ticket: Ticket,
     title: String,
     description: String,
-    urgency: String,
+    urgency: Int,
     assignedTo: String,
     members: List<User>,
     comments: List<Comment>,
@@ -258,108 +274,182 @@ fun TicketContent(
     onFieldChange: (String, String, String, String) -> Unit,
     getUserName: (String, (String) -> Unit) -> Unit
 ) {
+    val isCreator = currentUserId == ticket.createdBy
+
+    val urgencies = UrgencyEnum.entries
+    var selectedUrgency by remember {
+        mutableStateOf(
+            urgencies.find { it.value == urgency } ?: UrgencyEnum.NORMAL
+        )
+    }
+    var urgExpanded by remember { mutableStateOf(false) }
+
+    var memExpanded by remember { mutableStateOf(false) }
+    val assignedName = members.find { it.id == assignedTo }?.name
+        ?: "Selecciona miembro"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val creatorName by produceState(initialValue = "Cargando...", ticket.createdBy) {
+
+        val creatorName by produceState("Cargando...", ticket.createdBy) {
             getUserName(ticket.createdBy) { value = it }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+
+        Spacer(Modifier.height(16.dp))
+
         OutlinedTextField(
             value = title,
-            onValueChange = { onFieldChange(it, description, urgency, assignedTo) },
-            label = { Text("Titulo") },
+            onValueChange = {
+                onFieldChange(it, description, urgency.toString(), assignedTo)
+            },
+            label = { Text("Título") },
+            enabled = isCreator,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
+
         OutlinedTextField(
             value = description,
-            onValueChange = { onFieldChange(title, it, urgency, assignedTo) },
+            onValueChange = {
+                onFieldChange(title, it, urgency.toString(), assignedTo)
+            },
             label = { Text("Descripción") },
-            modifier = Modifier.fillMaxWidth()
+            enabled = isCreator,
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 5
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = urgency,
-            onValueChange = { onFieldChange(title, description, it, assignedTo) },
-            label = { Text("Urgencia") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-        MemberDropdown(
-            members = members,
-            selectedId = assignedTo
-        ) { newAssignedId ->
-            onFieldChange(title, description, urgency, newAssignedId)
+        ExposedDropdownMenuBox(
+            expanded = urgExpanded,
+            onExpandedChange = {
+                if (isCreator) urgExpanded = !urgExpanded
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = selectedUrgency.label,
+                onValueChange = {},
+                readOnly = true,
+                enabled = isCreator,
+                label = { Text("Urgencia") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(urgExpanded)
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+                    .clickable(enabled = isCreator) { urgExpanded = true }
+            )
+            ExposedDropdownMenu(
+                expanded = urgExpanded,
+                onDismissRequest = { urgExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                urgencies.forEach { urg ->
+                    DropdownMenuItem(
+                        text = { Text(urg.label) },
+                        enabled = isCreator,
+                        onClick = {
+                            selectedUrgency = urg
+                            urgExpanded = false
+                            onFieldChange(
+                                title,
+                                description,
+                                urg.value.toString(),
+                                assignedTo
+                            )
+                        }
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Creado por: $creatorName", style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(16.dp))
+        ExposedDropdownMenuBox(
+            expanded = memExpanded,
+            onExpandedChange = {
+                if (isCreator) memExpanded = !memExpanded
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = assignedName,
+                onValueChange = {},
+                readOnly = true,
+                enabled = isCreator,
+                label = { Text("Asignado a") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(memExpanded)
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+                    .clickable(enabled = isCreator) { memExpanded = true }
+            )
+            ExposedDropdownMenu(
+                expanded = memExpanded,
+                onDismissRequest = { memExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                members.forEach { member ->
+                    DropdownMenuItem(
+                        text = { Text(member.name) },
+                        enabled = isCreator,
+                        onClick = {
+                            memExpanded = false
+                            onFieldChange(
+                                title,
+                                description,
+                                selectedUrgency.value.toString(),
+                                member.id
+                            )
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        Text("Creado por: $creatorName", style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(32.dp))
+        Divider()
+        Spacer(Modifier.height(16.dp))
 
         Text("Comentarios", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        comments.sortedByDescending { it.createdAt }.forEach { comment ->
-            val ticketUserName by produceState(initialValue = "Cargando...", comment.createdBy) {
-                getUserName(comment.createdBy) { value = it }
-            }
-
-            CommentCard(
-                comment = comment,
-                currentUserId = currentUserId,
-                userName = ticketUserName,
-                isEditing = editingCommentId == comment.id,
-                onEditToggle = {
-                    onEditCommentToggle(if (editingCommentId == comment.id) null else comment.id)
-                },
-                onEditConfirm = { newText ->
-                    onEditCommentConfirm(comment.copy(content = newText, edited = true))
-                },
-                onDeleteClick = {
-                    onDeleteComment(comment.id)
+        Spacer(Modifier.height(8.dp))
+        comments
+            .sortedByDescending { it.createdAt }
+            .forEach { comment ->
+                val ticketUserName by produceState("Cargando...", comment.createdBy) {
+                    getUserName(comment.createdBy) { value = it }
                 }
-            )
-        }
+                CommentCard(
+                    comment = comment,
+                    currentUserId = currentUserId,
+                    userName = ticketUserName,
+                    isEditing = editingCommentId == comment.id,
+                    onEditToggle = {
+                        onEditCommentToggle(
+                            if (editingCommentId == comment.id) null else comment.id
+                        )
+                    },
+                    onEditConfirm = { newText ->
+                        onEditCommentConfirm(
+                            comment.copy(content = newText, edited = true)
+                        )
+                    },
+                    onDeleteClick = { onDeleteComment(comment.id) }
+                )
+            }
     }
 }
 
-@Composable
-fun CommentInput(
-    newComment: String,
-    onCommentChange: (String) -> Unit,
-    onSendClick: () -> Unit
-) {
-    Spacer(modifier = Modifier.height(16.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = newComment,
-            onValueChange = onCommentChange,
-            label = { Text("Nuevo comentario") },
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        FilledIconButton(
-            onClick = onSendClick,
-            modifier = Modifier
-                .size(48.dp)
-                .padding(0.dp, 4.dp, 0.dp, 0.dp),
-            shape = RoundedCornerShape(4.dp)
-        ) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar")
-        }
-    }
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CommentCard(
     comment: Comment,
@@ -372,73 +462,127 @@ fun CommentCard(
 ) {
     var editedText by remember(comment.id) { mutableStateOf(comment.content) }
     val isOwnComment = comment.createdBy == currentUserId
-    val backgroundColor = if (isOwnComment) MaterialTheme.colorScheme.secondaryContainer
-    else MaterialTheme.colorScheme.surfaceVariant
 
-    Card(
+    var showMenu by remember { mutableStateOf(false) }
+
+    val bubbleColor = if (isOwnComment)
+        MaterialTheme.colorScheme.secondaryContainer
+    else
+        MaterialTheme.colorScheme.surfaceVariant
+
+    val bubbleShape = if (isOwnComment) {
+        RoundedCornerShape(
+            topStart = 12.dp, topEnd = 12.dp,
+            bottomStart = 12.dp, bottomEnd = 0.dp
+        )
+    } else {
+        RoundedCornerShape(
+            topStart = 12.dp, topEnd = 12.dp,
+            bottomStart = 0.dp,   bottomEnd = 12.dp
+        )
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(2.dp)
+        horizontalArrangement = if (isOwnComment) Arrangement.End else Arrangement.Start
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            if (isEditing) {
-                OutlinedTextField(
-                    value = editedText,
-                    onValueChange = { editedText = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Editar comentario") }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TextButton(onClick = { onEditConfirm(editedText) }) { Text("Guardar") }
-                    TextButton(onClick = onEditToggle) { Text("Cancelar") }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = comment.content, style = MaterialTheme.typography.bodySmall)
-                        if (comment.edited) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "(Editado)", style = MaterialTheme.typography.labelSmall)
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        if (!isOwnComment) {
-                            Text(text = "Por: $userName", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    if (isOwnComment) {
+        Box {
+            Surface(
+                color = bubbleColor,
+                shape = bubbleShape,
+                tonalElevation = 2.dp,
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .padding(horizontal = 8.dp)
+                    .combinedClickable(
+                        enabled = isOwnComment && !isEditing,
+                        onClick = {},
+                        onLongClick = { showMenu = true }
+                    )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = editedText,
+                            onValueChange = { editedText = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Editar comentario") }
+                        )
+                        Spacer(Modifier.height(8.dp))
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.End,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            IconButton(onClick = onEditToggle) { Icon(Icons.Default.Edit, contentDescription = "Editar") }
-                            IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, contentDescription = "Borrar") }
+                            TextButton(onClick = { onEditConfirm(editedText) }) {
+                                Text("Guardar")
+                            }
+                            TextButton(onClick = onEditToggle) {
+                                Text("Cancelar")
+                            }
                         }
+                    } else {
+                        Text(
+                            text = comment.content,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        )
+
+                        if (comment.edited) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "(Editado)",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+
+                        if (!isOwnComment) {
+                            Text(
+                                text = "Por: $userName",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(Modifier.height(2.dp))
+                        }
+
+                        Text(
+                            text = "Fecha: ${formatDate(comment.createdAt)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Fecha: ${formatDate(comment.createdAt)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Start)
-                )
+            }
+
+            if (showMenu) {
+                DropdownMenu(
+                    expanded = true,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Editar") },
+                        onClick = {
+                            showMenu = false
+                            onEditToggle()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Borrar") },
+                        onClick = {
+                            showMenu = false
+                            onDeleteClick()
+                        }
+                    )
+                }
             }
         }
     }
 }
+
 
 fun formatDate(timestamp: Long): String {
     return java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
