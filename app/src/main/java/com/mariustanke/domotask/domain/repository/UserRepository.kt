@@ -1,8 +1,6 @@
 package com.mariustanke.domotask.domain.repository
 
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mariustanke.domotask.domain.model.User
 import kotlinx.coroutines.tasks.await
@@ -61,6 +59,13 @@ class UserRepository @Inject constructor(
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    suspend fun updateUser(user: User) {
+        usersCollection
+            .document(user.id)
+            .set(user)
+            .await()
     }
 
     suspend fun getUserByInvitationCode(code: String): User? {

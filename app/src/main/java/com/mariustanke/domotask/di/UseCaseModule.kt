@@ -7,6 +7,7 @@ import com.mariustanke.domotask.domain.usecase.auth.CreateUserUseCase
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.auth.GetUserUseCase
 import com.mariustanke.domotask.domain.usecase.auth.UpdateFcmTokenUseCase
+import com.mariustanke.domotask.domain.usecase.auth.UpdateUserUseCase
 import com.mariustanke.domotask.domain.usecase.board.AcceptInvitationUseCase
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import com.mariustanke.domotask.domain.usecase.board.CreateBoardStatusUseCase
@@ -88,6 +89,7 @@ object UseCaseModule {
         return UserUseCases(
             getUser = GetUserUseCase(userRepository),
             createUser = CreateUserUseCase(userRepository),
+            updateUser = UpdateUserUseCase(userRepository),
             updateFcmToken = UpdateFcmTokenUseCase(userRepository)
         )
     }

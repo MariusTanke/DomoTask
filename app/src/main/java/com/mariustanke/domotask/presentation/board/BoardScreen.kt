@@ -10,10 +10,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -25,12 +27,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.mariustanke.domotask.R
 import com.mariustanke.domotask.domain.enums.UrgencyEnum
 import com.mariustanke.domotask.domain.model.Status
 import com.mariustanke.domotask.domain.model.Ticket
@@ -235,17 +244,33 @@ fun BoardScreen(
                                                 .fillMaxWidth()
                                                 .padding(8.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Person,
-                                                contentDescription = "Avatar",
-                                                modifier = Modifier.size(32.dp)
-                                            )
+                                            if (user.photo != null) {
+                                                AsyncImage(
+                                                    model = user.photo,
+                                                    contentDescription = "Avatar de ${user.name}",
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape),
+                                                    placeholder = painterResource(R.drawable.placeholder_avatar),
+                                                    error = painterResource(R.drawable.placeholder_avatar),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.Person,
+                                                    contentDescription = "Avatar",
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+
                                             Spacer(modifier = Modifier.width(8.dp))
+
                                             Text(
                                                 text = user.name,
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 modifier = Modifier.weight(1f)
                                             )
+
                                             Box(
                                                 modifier = Modifier
                                                     .size(32.dp)
@@ -469,15 +494,17 @@ fun TicketColumn(
             }
 
             tickets.forEach { ticket ->
+                val assignedUser = members.find { it.id == ticket.assignedTo}
                 PostItTicketCard(
                     ticket = ticket,
                     allStatuses = allStatuses,
                     currentUserId = viewModel.currentUser?.uid.orEmpty(),
-                    asignedToName = members.find { it.id == ticket.assignedTo}?.name ?: "",
+                    assignedToName = assignedUser?.name ?: "",
                     onClick = { onTicketClick(boardId, ticket.id) },
                     onMove = { newStatus ->
                         viewModel.updateTicket(boardId, ticket.copy(status = newStatus))
                     },
+                    assignedToPhoto = assignedUser?.photo ?: "",
                     onDelete = { viewModel.deleteTicket(boardId, ticket.id) }
                 )
                 Spacer(Modifier.height(8.dp))
@@ -490,7 +517,8 @@ fun TicketColumn(
 @Composable
 fun PostItTicketCard(
     ticket: Ticket,
-    asignedToName: String,
+    assignedToName: String,
+    assignedToPhoto: String?,
     allStatuses: List<Status>,
     currentUserId: String,
     onClick: () -> Unit,
@@ -498,16 +526,29 @@ fun PostItTicketCard(
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    fun initials(name: String): String {
+        return name
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .map { it.first().uppercaseChar() }
+            .take(2)
+            .joinToString("")
+    }
+
     Box {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
-                .combinedClickable(onClick = onClick, onLongClick = {
-                    if (ticket.createdBy == currentUserId) {
-                        expanded = true
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        if (ticket.createdBy == currentUserId) {
+                            expanded = true
+                        }
                     }
-                }),
+                ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
@@ -515,24 +556,53 @@ fun PostItTicketCard(
                 Text(ticket.title, style = MaterialTheme.typography.titleMedium)
                 if (ticket.description.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(ticket.description, style = MaterialTheme.typography.bodySmall)
+                    Text(ticket.description, style = MaterialTheme.typography.bodyMedium)
                 }
                 Spacer(Modifier.height(8.dp))
                 val urgText = UrgencyEnum.entries
                     .find { it.value == ticket.urgency }
-                    ?.label
-                    ?: "Desconocida"
+                    ?.label ?: "Desconocida"
 
                 Text("Urgencia: $urgText", style = MaterialTheme.typography.labelSmall)
 
-                if (asignedToName.isNotEmpty()){
-                    Text(
-                        "Asignado a: $asignedToName",
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                if (assignedToName.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Spacer(Modifier.width(8.dp).weight(1f))
+                        if (!assignedToPhoto.isNullOrBlank()) {
+                            AsyncImage(
+                                model = assignedToPhoto,
+                                contentDescription = "Avatar de $assignedToName",
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape),
+                                placeholder = painterResource(R.drawable.placeholder_avatar),
+                                error = painterResource(R.drawable.placeholder_avatar),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = initials(assignedToName),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
@@ -550,7 +620,7 @@ fun PostItTicketCard(
                     )
                 }
             if (ticket.createdBy == currentUserId) {
-                Divider()
+                HorizontalDivider()
                 DropdownMenuItem(
                     text = { Text("Borrar ticket") },
                     onClick = {
@@ -578,6 +648,7 @@ fun CreateTicketDialog(
     var urgExpanded by remember { mutableStateOf(false) }
     var memExpanded by remember { mutableStateOf(false) }
     var assignedToId by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -640,18 +711,24 @@ fun CreateTicketDialog(
 
                 ExposedDropdownMenuBox(
                     expanded = memExpanded,
-                    onExpandedChange = { memExpanded = !memExpanded },
+                    onExpandedChange = {
+                        memExpanded = !memExpanded
+                        if (memExpanded) {
+                            focusRequester.requestFocus()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = members.find { it.id == assignedToId }?.name
-                            ?: "Selecciona miembro",
+                        value = members.find { it.id == assignedToId }?.name ?: "Selecciona miembro",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Asignado a") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memExpanded) },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
+                            .focusRequester(focusRequester)
                             .clickable { memExpanded = true }
                     )
                     ExposedDropdownMenu(
@@ -660,6 +737,26 @@ fun CreateTicketDialog(
                     ) {
                         members.forEach { member ->
                             DropdownMenuItem(
+                                leadingIcon = {
+                                    if (member.photo != null) {
+                                        AsyncImage(
+                                            model = member.photo,
+                                            contentDescription = "Foto de ${member.name}",
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape),
+                                            placeholder = painterResource(R.drawable.placeholder_avatar),
+                                            error = painterResource(R.drawable.placeholder_avatar),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                },
                                 text = { Text(member.name) },
                                 onClick = {
                                     assignedToId = member.id
