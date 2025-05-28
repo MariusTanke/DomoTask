@@ -2,16 +2,15 @@ package com.mariustanke.domotask.presentation.ticket
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,8 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -39,6 +42,7 @@ import com.mariustanke.domotask.domain.enums.UrgencyEnum
 import com.mariustanke.domotask.domain.model.Comment
 import com.mariustanke.domotask.domain.model.Ticket
 import com.mariustanke.domotask.domain.model.User
+import com.mariustanke.domotask.presentation.board.initials
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -48,8 +52,9 @@ import java.util.Locale
 fun TicketScreen(
     boardId: String,
     ticketId: String,
-    onBackClick: () -> Unit,
-    viewModel: TicketViewModel = hiltViewModel()
+    onBackToBoardClick: () -> Unit,
+    viewModel: TicketViewModel = hiltViewModel(),
+    onSubTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
     LaunchedEffect(Unit) {
         viewModel.loadTicketAndComments(boardId, ticketId)
@@ -57,14 +62,20 @@ fun TicketScreen(
     }
 
     val ticket by viewModel.ticket.collectAsState()
+    val subTickets by viewModel.subTickets.collectAsState()
     val comments by viewModel.comments.collectAsState()
     val members by viewModel.members.collectAsState()
     val currentUserId = viewModel.currentUser?.uid.orEmpty()
+    var showDialog by remember { mutableStateOf(false) }
+    val onCreateRelatedClick = { showDialog = true }
+    val statuses by viewModel.statuses.collectAsState()
 
     ticket?.let {
         TicketScaffold(
             ticket = it,
+            boardId = boardId,
             comments = comments,
+            subTickets = subTickets,
             members = members,
             currentUserId = currentUserId,
             onUpdateTicket = { updated -> viewModel.updateTicket(boardId, updated) },
@@ -79,11 +90,36 @@ fun TicketScreen(
                     comment
                 )
             },
-            onBackClick = onBackClick,
+            onBackClick = onBackToBoardClick,
             getUserName = viewModel::getUserName,
             onAddCommentWithImage = { uri, text ->
                 viewModel.sendComment(boardId, ticketId, text, uri)
-            }
+            },
+            showTicketDialog = onCreateRelatedClick,
+            onSubTicketClick = onSubTicketClick
+        )
+    }
+
+    if (showDialog) {
+        CreateTicketDialog(
+            onCreate = { title, desc, urg, assigned ->
+                viewModel.createTicket(
+                    boardId,
+                    Ticket(
+                        title = title,
+                        description = desc,
+                        urgency = urg,
+                        createdBy = viewModel.currentUser?.uid.orEmpty(),
+                        assignedTo = assigned,
+                        parentId = ticketId,
+                        createdAt = System.currentTimeMillis(),
+                        status = statuses.firstOrNull()?.id.orEmpty()
+                    )
+                )
+                showDialog = false
+            },
+            members = members,
+            onDismiss = { showDialog = false }
         )
     }
 }
@@ -92,6 +128,8 @@ fun TicketScreen(
 @Composable
 fun TicketScaffold(
     ticket: Ticket,
+    boardId: String,
+    subTickets: List<Ticket?>,
     comments: List<Comment>,
     members: List<User>,
     currentUserId: String,
@@ -101,7 +139,9 @@ fun TicketScaffold(
     onUpdateComment: (Comment) -> Unit,
     onDeleteComment: (Comment) -> Unit,
     onBackClick: () -> Unit,
-    getUserName: (String, (String) -> Unit) -> Unit
+    getUserName: (String, (String) -> Unit) -> Unit,
+    showTicketDialog: () -> Unit,
+    onSubTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
     var title by remember { mutableStateOf(ticket.title) }
     var editingTitle by remember { mutableStateOf(false) }
@@ -111,11 +151,6 @@ fun TicketScaffold(
     var newComment by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var editingCommentId by remember { mutableStateOf<String?>(null) }
-
-    Log.d(
-        "DEBUG",
-        "createdBy ${ticket.createdBy} - currentUserId: $currentUserId - isOwn ${ticket.createdBy == currentUserId}"
-    )
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -176,6 +211,8 @@ fun TicketScaffold(
             Box(modifier = Modifier.weight(1f)) {
                 TicketContent(
                     ticket = ticket,
+                    boardId = boardId,
+                    subTickets = subTickets,
                     title = title,
                     description = description,
                     urgency = urgency,
@@ -196,7 +233,9 @@ fun TicketScaffold(
                         urgency = newUrg.toInt()
                         assignedTo = newAssigned
                     },
-                    getUserName = getUserName
+                    getUserName = getUserName,
+                    showTicketDialog = showTicketDialog,
+                    onSubTicketClick = onSubTicketClick
                 )
             }
         }
@@ -370,6 +409,8 @@ fun TicketTopBar(
 @Composable
 fun TicketContent(
     ticket: Ticket,
+    boardId: String,
+    subTickets: List<Ticket?>,
     title: String,
     description: String,
     urgency: Int,
@@ -382,7 +423,9 @@ fun TicketContent(
     onEditCommentConfirm: (Comment) -> Unit,
     onDeleteComment: (Comment) -> Unit,
     onFieldChange: (String, String, String, String) -> Unit,
-    getUserName: (String, (String) -> Unit) -> Unit
+    getUserName: (String, (String) -> Unit) -> Unit,
+    showTicketDialog: () -> Unit,
+    onSubTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
     val isCreator = currentUserId == ticket.createdBy
 
@@ -393,7 +436,6 @@ fun TicketContent(
         )
     }
     var urgExpanded by remember { mutableStateOf(false) }
-
     var memExpanded by remember { mutableStateOf(false) }
     val assignedName = members.find { it.id == assignedTo }?.name
         ?: "Selecciona miembro"
@@ -513,8 +555,40 @@ fun TicketContent(
             ) {
                 members.forEach { member ->
                     DropdownMenuItem(
-                        text = { Text(member.name) },
                         enabled = isCreator,
+                        leadingIcon = {
+                            if (member.photo != null) {
+                                AsyncImage(
+                                    model = member.photo,
+                                    contentDescription = "Foto de ${member.name}",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
+                                    placeholder = painterResource(R.drawable.placeholder_avatar),
+                                    error = painterResource(R.drawable.placeholder_avatar),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = member.name.split(" ")
+                                            .filter { it.isNotBlank() }
+                                            .map { it.first().uppercaseChar() }
+                                            .take(2)
+                                            .joinToString(""),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        },
+                        text = { Text(member.name) },
                         onClick = {
                             memExpanded = false
                             onFieldChange(
@@ -532,6 +606,78 @@ fun TicketContent(
 
         Text("Creado por: $creatorName", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(32.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(16.dp))
+
+        if (ticket.parentId.isNullOrEmpty()) {
+            Button(
+                onClick = { showTicketDialog() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Crear tarea relacionada")
+            }
+
+            if (subTickets.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text("Subtareas", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+
+                Column {
+                    subTickets.forEach { sub ->
+                        if (sub != null) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable {
+                                        onSubTicketClick(boardId, sub.id)
+                                    },
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = when (sub.urgency) {
+                                                    in 1..2 -> Color.Green
+                                                    3 -> Color.Yellow
+                                                    else -> Color.Red
+                                                },
+                                                shape = CircleShape
+                                            )
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Column {
+                                        Text(sub.title, style = MaterialTheme.typography.bodyLarge)
+                                        Text(
+                                            "Asignado a: ${
+                                                members.find { it.id == sub.assignedTo }?.name ?: "—"
+                                            }",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        } else {
+            Button(
+                onClick = { onSubTicketClick(boardId, ticket.parentId) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ir a la tarea principal")
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
 
@@ -728,6 +874,170 @@ fun CommentCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateTicketDialog(
+    onCreate: (title: String, desc: String, urgencyLevel: Int, assignedTo: String) -> Unit,
+    members: List<User>,
+    onDismiss: () -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    val urgencies = UrgencyEnum.entries
+    var selectedUrgency by remember { mutableStateOf(UrgencyEnum.NORMAL) }
+
+    var urgExpanded by remember { mutableStateOf(false) }
+    var memExpanded by remember { mutableStateOf(false) }
+    var assignedToId by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nuevo Ticket") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Título") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descripción") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp),
+                    maxLines = 5
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = urgExpanded,
+                    onExpandedChange = { urgExpanded = !urgExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedUrgency.label,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Urgencia") },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                            .clickable { urgExpanded = true }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = urgExpanded,
+                        onDismissRequest = { urgExpanded = false }
+                    ) {
+                        urgencies.forEach { urg ->
+                            DropdownMenuItem(
+                                text = { Text(urg.label) },
+                                onClick = {
+                                    selectedUrgency = urg
+                                    urgExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = memExpanded,
+                    onExpandedChange = {
+                        memExpanded = !memExpanded
+                        if (memExpanded) {
+                            focusRequester.requestFocus()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = members.find { it.id == assignedToId }?.name
+                            ?: "Selecciona miembro",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Asignado a") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .clickable { memExpanded = true }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = memExpanded,
+                        onDismissRequest = { memExpanded = false }
+                    ) {
+                        members.forEach { member ->
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    if (member.photo != null) {
+                                        AsyncImage(
+                                            model = member.photo,
+                                            contentDescription = "Foto de ${member.name}",
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape),
+                                            placeholder = painterResource(R.drawable.placeholder_avatar),
+                                            error = painterResource(R.drawable.placeholder_avatar),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = initials(member.name),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                },
+                                text = { Text(member.name) },
+                                onClick = {
+                                    assignedToId = member.id
+                                    memExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onCreate(
+                    title,
+                    description,
+                    selectedUrgency.value,
+                    assignedToId
+                )
+            }) {
+                Text("Crear")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 fun formatDate(timestamp: Long): String {

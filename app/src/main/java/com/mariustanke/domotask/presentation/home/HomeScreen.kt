@@ -25,7 +25,7 @@ import com.mariustanke.domotask.domain.uiModels.BoardUiModel
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onNavigateToBoard: (boardId: String, boardName: String) -> Unit
+    onNavigateToBoard: (boardId: String) -> Unit
 ) {
     val user by viewModel.user.collectAsState()
     val boards by viewModel.boards.collectAsState()
@@ -84,7 +84,7 @@ fun HomeScreen(
                     boards.forEach { board ->
                         BoardCard(
                             board = board,
-                            onClick = { onNavigateToBoard(board.id, board.name) }
+                            onClick = { onNavigateToBoard(board.id) }
                         )
                     }
                 }

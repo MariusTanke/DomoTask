@@ -9,6 +9,8 @@ data class Ticket(
     val createdBy: String = "",
     val assignedTo: String = "",
     val edited: Boolean = false,
-    val parent: String? = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val parentId: String? = "",
+    val createdAt: Long = System.currentTimeMillis(),
+
+    val subTickets: List<Ticket> = emptyList()
 )

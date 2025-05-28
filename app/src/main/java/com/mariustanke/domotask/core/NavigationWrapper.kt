@@ -67,19 +67,5 @@ fun NavigationWrapper() {
                 }
             )
         }
-
-        composable(
-            route = Screen.Ticket.route,
-            arguments = listOf(
-                navArgument("boardId") { type = NavType.StringType },
-                navArgument("ticketId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
-            val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
-            TicketScreen(boardId = boardId, ticketId = ticketId, {
-                navController.popBackStack()
-            })
-        }
     }
 }

@@ -105,10 +105,68 @@ class BoardRepository @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    fun getTicket(
+        boardId: String,
+        ticketId: String
+    ): Flow<Ticket> = callbackFlow {
+        val ticketRef = ticketsCollection(boardId).document(ticketId)
+
+        var baseTicket: Ticket? = null
+        var childTickets: List<Ticket> = emptyList()
+
+        val ticketListener = ticketRef.addSnapshotListener { snap, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            snap?.toObject(Ticket::class.java)
+                ?.copy(id = snap.id)
+                ?.also { ticket ->
+                    baseTicket = ticket
+                    trySend(ticket.copy(subTickets = childTickets.toMutableList()))
+                }
+        }
+
+        val childrenQuery = ticketsCollection(boardId)
+            .whereEqualTo("parentId", ticketId)
+        val childrenListener = childrenQuery.addSnapshotListener { snap, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            childTickets = snap?.documents
+                ?.mapNotNull { it.toObject(Ticket::class.java)?.copy(id = it.id) }
+                ?: emptyList()
+
+            baseTicket?.let { base ->
+                trySend(base.copy(subTickets = childTickets.toMutableList()))
+            }
+        }
+
+        awaitClose {
+            ticketListener.remove()
+            childrenListener.remove()
+        }
+    }
+
     suspend fun addTicket(boardId: String, ticket: Ticket): String {
         val ref = ticketsCollection(boardId).document()
         val ticketWithId = ticket.copy(id = ref.id)
         ref.set(ticketWithId).await()
+        return ref.id
+    }
+
+    suspend fun addSubTicket(
+        boardId: String,
+        ticketId: String,
+        subTicket: Ticket
+    ): String {
+        val ref = ticketsCollection(boardId)
+            .document(ticketId)
+            .collection("subtickets")
+            .document()
+        val withId = subTicket.copy(id = ref.id)
+        ref.set(withId).await()
         return ref.id
     }
 
@@ -124,20 +182,6 @@ class BoardRepository @Inject constructor(
             .document(ticketId)
             .delete()
             .await()
-    }
-
-    suspend fun addSubticket(
-        boardId: String,
-        ticketId: String,
-        subticket: Ticket
-    ): String {
-        val ref = ticketsCollection(boardId)
-            .document(ticketId)
-            .collection("subtickets")
-            .document()
-        val withId = subticket.copy(id = ref.id)
-        ref.set(withId).await()
-        return ref.id
     }
 
     /** ─── Comments ──────────────────────────────────────────────────────── */

@@ -1,6 +1,9 @@
 package com.mariustanke.domotask.presentation.profile
 
+import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,16 +21,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
+    application: Application,
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
     private val userUseCases: UserUseCases,
     private val storage: FirebaseStorage,
     private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
+
+    private val appContext = application.applicationContext
 
     private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Loading)
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
@@ -63,20 +70,43 @@ class ProfileViewModel @Inject constructor(
     private fun uploadNewProfileImage(uri: Uri) {
         val user = currentUser ?: return
         viewModelScope.launch {
-            user.photo?.takeIf { it.isNotBlank() }?.let { oldUrl ->
-                runCatching { storage.getReferenceFromUrl(oldUrl).delete().await() }
-            }
-            val ref = storage.reference
-                .child("profiles/${user.id}/${System.currentTimeMillis()}")
-            ref.putFile(uri).await()
-            val newUrl = ref.downloadUrl.await().toString()
+            user.photo
+                ?.takeIf { it.isNotBlank() }
+                ?.let { oldUrl ->
+                    runCatching { storage.getReferenceFromUrl(oldUrl).delete().await() }
+                }
 
+            val inputStream = appContext.contentResolver.openInputStream(uri)
+            val original = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            val scaled = Bitmap.createScaledBitmap(
+                original,
+                original.width / 2,
+                original.height / 2,
+                true
+            )
+            original.recycle()
+
+            val baos = ByteArrayOutputStream().apply {
+                scaled.compress(Bitmap.CompressFormat.JPEG, 30, this)
+            }
+            scaled.recycle()
+            val data = baos.toByteArray()
+            baos.close()
+
+            val ref = storage.reference
+                .child("profiles/${user.id}/${System.currentTimeMillis()}.jpg")
+            ref.putBytes(data).await()
+
+            val newUrl = ref.downloadUrl.await().toString()
             val updatedUser = user.copy(photo = newUrl)
             userUseCases.updateUser(updatedUser)
             currentUser = updatedUser
             _profileState.value = ProfileState.Success(updatedUser)
         }
     }
+
 
     fun sendPasswordReset() {
         val email = authRepository.getCurrentUser()?.email

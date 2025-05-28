@@ -3,11 +3,11 @@ package com.mariustanke.domotask.presentation.profile
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,9 +19,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.mariustanke.domotask.R
+import com.mariustanke.domotask.presentation.board.initials
 import kotlinx.coroutines.launch
 
 @Composable
@@ -65,26 +67,31 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.wrapContentWidth()
                     ) {
-                        if (profile.photo != null) {
+                        if (!profile.photo.isNullOrEmpty()) {
                             AsyncImage(
                                 model = profile.photo,
                                 contentDescription = "Nueva foto de perfil",
                                 modifier = Modifier
-                                    .size(320.dp)
+                                    .size(300.dp)
                                     .clip(CircleShape),
                                 placeholder = painterResource(R.drawable.placeholder_avatar),
-                                error = painterResource(R.drawable.placeholder_avatar),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "Imagen de perfil",
+                            Box(
                                 modifier = Modifier
-                                    .size(320.dp)
-                                    .padding(8.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                                    .size(300.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = initials(profile.name),
+                                    fontSize = 62.sp,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
 
                         Spacer(Modifier.height(12.dp))

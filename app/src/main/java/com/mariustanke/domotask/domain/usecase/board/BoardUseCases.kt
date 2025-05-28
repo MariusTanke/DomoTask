@@ -8,9 +8,11 @@ data class BoardUseCases(
     val deleteBoard: DeleteBoardUseCase,
 
     val createTicket: CreateTicketUseCase,
+    val createSubTicket: CreateSubTicketUseCase,
     val updateTicket: UpdateTicketUseCase,
     val deleteTicket: DeleteTicketUseCase,
     val getTickets: GetTicketsUseCase,
+    val getTicket: GetTicketUseCase,
 
     val createBoardStatus: CreateBoardStatusUseCase,
     val getBoardStatus: GetBoardStatusesUseCase,

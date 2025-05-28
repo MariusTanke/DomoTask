@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,14 +48,14 @@ import com.mariustanke.domotask.domain.model.User
 @Composable
 fun BoardScreen(
     boardId: String,
-    boardName: String,
     viewModel: BoardViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
-    val boardData by viewModel.board.collectAsState()
-
     val context = LocalContext.current
+
+    var selectedFilter by remember { mutableStateOf<String?>(null) }
+
     var showAddStatusDialog by remember { mutableStateOf(false) }
     var newStatusName by remember { mutableStateOf("") }
     var newStatusOrder by remember { mutableIntStateOf(1) }
@@ -64,6 +64,7 @@ fun BoardScreen(
     var showMemberDialog by remember { mutableStateOf(false) }
     var inviteInput by remember { mutableStateOf("") }
 
+    val boardData by viewModel.board.collectAsState()
     val tickets by viewModel.tickets.collectAsState()
     val statuses by viewModel.statuses.collectAsState()
     val members by viewModel.members.collectAsState()
@@ -90,7 +91,7 @@ fun BoardScreen(
         topBar = {
             viewModel.currentUser?.uid?.let {
                 TopBar(
-                    boardName = boardName,
+                    boardName = boardData?.name ?: "",
                     showMenu = showMenu,
                     onBackClick = onBackClick,
                     onMemberManagementClick = {
@@ -110,7 +111,9 @@ fun BoardScreen(
                     onAddStatusClick = {
                         showAddStatusDialog = true
                         showMenu = false
-                    }
+                    },
+                    onFilterSelected = { selectedFilter = it },
+                    members = members
                 )
             }
         },
@@ -120,6 +123,14 @@ fun BoardScreen(
             }
         }
     ) { innerPadding ->
+
+        val ticketsFiltered = tickets.filter { ticket ->
+            when (selectedFilter) {
+                null -> true
+                else -> ticket.assignedTo == selectedFilter
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -136,7 +147,7 @@ fun BoardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 statuses.sortedBy { it.order }.forEach { status ->
-                    val columnTickets = tickets.filter { it.status == status.id }
+                    val columnTickets = ticketsFiltered.filter { it.status == status.id }
                     boardData?.let {
                         TicketColumn(
                             status = status,
@@ -326,6 +337,7 @@ fun BoardScreen(
 fun TopBar(
     boardName: String,
     showMenu: Boolean,
+    members: List<User>,
     onMemberManagementClick: () -> Unit,
     onMenuClick: () -> Unit,
     onDismissMenu: () -> Unit,
@@ -333,15 +345,17 @@ fun TopBar(
     onBackClick: () -> Unit,
     currentUserId: String,
     boardOwnerId: String,
-    onLeaveBoard: () -> Unit
+    onLeaveBoard: () -> Unit,
+    onFilterSelected: (String?) -> Unit,
 ) {
-    var barWidthPx by remember { mutableStateOf(0) }
-    var menuWidthPx by remember { mutableStateOf(0) }
+    var barWidthPx by remember { mutableIntStateOf(0) }
+    var menuWidthPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val offsetDp by derivedStateOf {
         val dx = (barWidthPx - menuWidthPx).coerceAtLeast(0)
         with(density) { dx.toDp() }
     }
+    var showFilterMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -363,6 +377,46 @@ fun TopBar(
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.align(Alignment.Center)
         )
+
+        IconButton(
+            onClick = { showFilterMenu = true },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 48.dp)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Filtrar", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+        DropdownMenu(
+            expanded = showFilterMenu,
+            onDismissRequest = { showFilterMenu = false },
+            offset = DpOffset(x = (-40).dp, y = 0.dp)
+        ) {
+            DropdownMenuItem(
+                text = { Text("Todos") },
+                onClick = {
+                    onFilterSelected(null)
+                    showFilterMenu = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Sin asignar") },
+                onClick = {
+                    onFilterSelected("")
+                    showFilterMenu = false
+                }
+            )
+            HorizontalDivider()
+            members.forEach { user ->
+                DropdownMenuItem(
+                    text = { Text(user.name) },
+                    onClick = {
+                        onFilterSelected(user.id)
+                        showFilterMenu = false
+                    }
+                )
+            }
+        }
+
         IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.CenterEnd)) {
             Icon(
                 Icons.Default.MoreVert,
@@ -487,11 +541,17 @@ fun TicketColumn(
                         }
                     }
                 }
-                HorizontalDivider()
             } else {
                 Text(status.name, style = MaterialTheme.typography.titleLarge)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             }
+
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline
+            )
 
             tickets.forEach { ticket ->
                 val assignedUser = members.find { it.id == ticket.assignedTo}
@@ -513,6 +573,15 @@ fun TicketColumn(
     }
 }
 
+fun initials(name: String): String {
+    return name
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .map { it.first().uppercaseChar() }
+        .take(2)
+        .joinToString("")
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PostItTicketCard(
@@ -526,15 +595,6 @@ fun PostItTicketCard(
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-
-    fun initials(name: String): String {
-        return name
-            .split(" ")
-            .filter { it.isNotBlank() }
-            .map { it.first().uppercaseChar() }
-            .take(2)
-            .joinToString("")
-    }
 
     Box {
         Card(
@@ -743,18 +803,26 @@ fun CreateTicketDialog(
                                             model = member.photo,
                                             contentDescription = "Foto de ${member.name}",
                                             modifier = Modifier
-                                                .size(24.dp)
+                                                .size(32.dp)
                                                 .clip(CircleShape),
                                             placeholder = painterResource(R.drawable.placeholder_avatar),
                                             error = painterResource(R.drawable.placeholder_avatar),
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
-                                        Icon(
-                                            imageVector = Icons.Default.AccountCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = initials(member.name),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
                                     }
                                 },
                                 text = { Text(member.name) },

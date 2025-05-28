@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.storage.FirebaseStorage
 import com.mariustanke.domotask.domain.model.Comment
+import com.mariustanke.domotask.domain.model.Status
 import com.mariustanke.domotask.domain.model.Ticket
 import com.mariustanke.domotask.domain.model.User
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
@@ -22,6 +23,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -43,6 +45,12 @@ class TicketViewModel @Inject constructor(
     private val _ticket = MutableStateFlow<Ticket?>(null)
     val ticket: StateFlow<Ticket?> = _ticket
 
+    private val _subTickets = MutableStateFlow<List<Ticket?>>(emptyList())
+    val subTickets: StateFlow<List<Ticket?>> = _subTickets
+
+    private val _statuses = MutableStateFlow<List<Status>>(emptyList())
+    val statuses: StateFlow<List<Status>> = _statuses.asStateFlow()
+
     private val _comments = MutableStateFlow<List<Comment>>(emptyList())
     val comments: StateFlow<List<Comment>> = _comments
 
@@ -53,13 +61,21 @@ class TicketViewModel @Inject constructor(
 
     fun loadTicketAndComments(boardId: String, ticketId: String) {
         viewModelScope.launch {
-            boardUseCases.getTickets(boardId)
-                .first()
-                .find { it.id == ticketId }
-                ?.let { _ticket.value = it }
+            boardUseCases
+                .getTicket(boardId, ticketId)
+                .collect { ticket ->
+                    _ticket.value = ticket
+                    _subTickets.value = ticket.subTickets
+                }
+        }
 
+        viewModelScope.launch {
             commentUseCases.getComments(boardId, ticketId)
                 .collect { list -> _comments.value = list }
+        }
+
+        viewModelScope.launch {
+            boardUseCases.getBoardStatus(boardId).collect { _statuses.value = it }
         }
     }
 
@@ -86,41 +102,51 @@ class TicketViewModel @Inject constructor(
         imageUri: Uri?
     ) {
         viewModelScope.launch {
-            if (imageUri != null) {
-                val inputStream = appContext.contentResolver.openInputStream(imageUri)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                val baos = ByteArrayOutputStream().apply {
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 50, this)
-                }
+            val imageUrl = imageUri?.let { uri ->
+                val inputStream = appContext.contentResolver.openInputStream(uri)
+                val original = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
 
+                val scaled = Bitmap.createScaledBitmap(
+                    original,
+                    original.width / 2,
+                    original.height / 2,
+                    true
+                )
+                original.recycle()
+
+                val baos = ByteArrayOutputStream().apply {
+                    scaled.compress(Bitmap.CompressFormat.JPEG, 30, this)
+                }
+                scaled.recycle()
                 val data = baos.toByteArray()
+                baos.close()
 
                 val ref = storage.reference
-                    .child("comments/$boardId/$ticketId/${System.currentTimeMillis()}")
-
+                    .child("comments/$boardId/$ticketId/${System.currentTimeMillis()}.jpg")
                 ref.putBytes(data).await()
-                val url = ref.downloadUrl.await().toString()
-                val comment = Comment(
-                    content = text,
-                    imageUrl = url,
-                    createdBy = currentUser?.uid.orEmpty(),
-                    createdAt = System.currentTimeMillis()
-                )
-                commentUseCases.addComment(boardId, ticketId, comment)
-            } else {
-                val comment = Comment(
-                    content = text,
-                    createdBy = currentUser?.uid.orEmpty(),
-                    createdAt = System.currentTimeMillis()
-                )
-                commentUseCases.addComment(boardId, ticketId, comment)
+                ref.downloadUrl.await().toString()
             }
+
+            val comment = Comment(
+                content = text,
+                imageUrl = imageUrl,
+                createdBy = currentUser?.uid.orEmpty(),
+                createdAt = System.currentTimeMillis()
+            )
+            commentUseCases.addComment(boardId, ticketId, comment)
         }
     }
 
     fun updateComment(boardId: String, ticketId: String, comment: Comment) {
         viewModelScope.launch {
             commentUseCases.updateComment(boardId, ticketId, comment)
+        }
+    }
+
+    fun createTicket(boardId: String, ticket: Ticket) {
+        viewModelScope.launch {
+            boardUseCases.createTicket(boardId, ticket)
         }
     }
 

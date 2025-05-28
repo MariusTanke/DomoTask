@@ -12,6 +12,7 @@ import com.mariustanke.domotask.domain.usecase.board.AcceptInvitationUseCase
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import com.mariustanke.domotask.domain.usecase.board.CreateBoardStatusUseCase
 import com.mariustanke.domotask.domain.usecase.board.CreateBoardUseCase
+import com.mariustanke.domotask.domain.usecase.board.CreateSubTicketUseCase
 import com.mariustanke.domotask.domain.usecase.board.CreateTicketUseCase
 import com.mariustanke.domotask.domain.usecase.board.DeleteBoardStatusUseCase
 import com.mariustanke.domotask.domain.usecase.board.DeleteBoardUseCase
@@ -20,6 +21,7 @@ import com.mariustanke.domotask.domain.usecase.board.GetBoardStatusesUseCase
 import com.mariustanke.domotask.domain.usecase.board.GetBoardUseCase
 import com.mariustanke.domotask.domain.usecase.board.UpdateTicketUseCase
 import com.mariustanke.domotask.domain.usecase.board.GetBoardsUseCase
+import com.mariustanke.domotask.domain.usecase.board.GetTicketUseCase
 import com.mariustanke.domotask.domain.usecase.board.GetTicketsUseCase
 import com.mariustanke.domotask.domain.usecase.board.InviteUserToBoardUseCase
 import com.mariustanke.domotask.domain.usecase.board.RejectInvitationUseCase
@@ -52,9 +54,11 @@ object UseCaseModule {
             getBoard = GetBoardUseCase(boardRepository),
             createBoard = CreateBoardUseCase(boardRepository),
             createTicket = CreateTicketUseCase(boardRepository),
+            createSubTicket = CreateSubTicketUseCase(boardRepository),
             updateTicket = UpdateTicketUseCase(boardRepository),
             deleteTicket = DeleteTicketUseCase(boardRepository),
             getTickets = GetTicketsUseCase(boardRepository),
+            getTicket = GetTicketUseCase(boardRepository),
             getBoardStatus = GetBoardStatusesUseCase(boardRepository),
             createBoardStatus = CreateBoardStatusUseCase(boardRepository),
             updateBoardStatus = UpdateBoardStatusUseCase(boardRepository),
@@ -64,7 +68,7 @@ object UseCaseModule {
             inviteUserToBoardUseCase = InviteUserToBoardUseCase(userRepository),
             acceptInvitationUseCase = AcceptInvitationUseCase(userRepository, boardRepository),
             removeMemberFromBoardUseCase = RemoveMemberFromBoardUseCase(boardRepository),
-            rejectInvitationUseCase = RejectInvitationUseCase(userRepository)
+            rejectInvitationUseCase = RejectInvitationUseCase(userRepository),
         )
     }
 

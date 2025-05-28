@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -72,27 +73,24 @@ fun MainScreen(
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    onNavigateToBoard = { boardId, boardName ->
-                        navController.navigate(Screen.Board.createRoute(boardId, Uri.encode(boardName)))
+                    onNavigateToBoard = { boardId ->
+                        navController.navigate(Screen.Board.createRoute(boardId))
                     }
                 )
             }
             composable(
                 route = Screen.Board.route,
                 arguments = listOf(
-                    navArgument("boardId") { type = NavType.StringType },
-                    navArgument("boardName") { type = NavType.StringType }
+                    navArgument("boardId") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
                 val boardId = backStackEntry.arguments?.getString("boardId") ?: ""
-                val boardName = backStackEntry.arguments?.getString("boardName") ?: ""
                 BoardScreen(
                     boardId = boardId,
-                    boardName = boardName,
                     onTicketClick = { bId, tId ->
                         navController.navigate(Screen.Ticket.createRoute(bId, tId))
                     },
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.navigate(Screen.Home.route) }
                 )
             }
             composable(
@@ -104,9 +102,14 @@ fun MainScreen(
             ) { backStackEntry ->
                 val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
                 val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
-                TicketScreen(boardId = boardId, ticketId = ticketId, onBackClick = {
-                    navController.popBackStack()
-                })
+                TicketScreen(
+                    boardId = boardId, ticketId = ticketId, onBackToBoardClick = {
+                        navController.navigate(Screen.Board.createRoute(boardId))
+                    },
+                    onSubTicketClick = { bId, tId ->
+                        navController.navigate(Screen.Ticket.createRoute(bId, tId))
+                    }
+                )
             }
             composable(Screen.Profile.route) { ProfileScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
@@ -114,4 +117,4 @@ fun MainScreen(
     }
 }
 
-data class BottomNavItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+data class BottomNavItem(val route: String, val label: String, val icon: ImageVector)
