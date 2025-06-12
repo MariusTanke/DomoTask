@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.play.services.fido)
     implementation(libs.play.services.fido)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.ui.text.google.fonts)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

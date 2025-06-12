@@ -2,7 +2,11 @@ package com.mariustanke.domotask.domain.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.mariustanke.domotask.domain.model.User
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -18,6 +22,23 @@ class UserRepository @Inject constructor(
             snapshot.toObject(User::class.java)
         } catch (e: Exception) {
             null
+        }
+    }
+
+    fun getUserFlow(uid: String): Flow<User?> = callbackFlow {
+        val docRef = usersCollection.document(uid)
+        val registration: ListenerRegistration = docRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+
+            val userObj = snapshot?.toObject(User::class.java)
+            trySend(userObj).isSuccess
+        }
+
+        awaitClose {
+            registration.remove()
         }
     }
 

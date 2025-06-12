@@ -23,6 +23,9 @@ class LoginViewModel @Inject constructor(
     private val _loginState = MutableStateFlow<LoginResult>(LoginResult.Idle)
     val loginState = _loginState.asStateFlow()
 
+    private val _resetState = MutableStateFlow<ResetResult>(ResetResult.Idle)
+    val resetState = _resetState.asStateFlow()
+
     fun loginWithEmail(email: String, password: String) {
         _loginState.value = LoginResult.Loading
         authRepository.signInWithEmail(email, password) { success, error ->
@@ -74,6 +77,25 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun sendPasswordReset(email: String) {
+        if (email.isBlank()) {
+            _resetState.value = ResetResult.Error("El correo no puede estar vacío")
+            return
+        }
+
+        _resetState.value = ResetResult.Loading
+        FirebaseAuth.getInstance()
+            .sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _resetState.value = ResetResult.Success
+                } else {
+                    val errorMsg = task.exception?.localizedMessage ?: "Error al enviar correo"
+                    _resetState.value = ResetResult.Error(errorMsg)
+                }
+            }
+    }
+
     fun getGoogleSignInIntent(): android.content.Intent {
         return authRepository.getGoogleSignInIntent()
     }
@@ -93,4 +115,11 @@ sealed class LoginResult {
     data object Loading : LoginResult()
     data object Success : LoginResult()
     data class Error(val message: String?) : LoginResult()
+}
+
+sealed class ResetResult {
+    object Idle : ResetResult()
+    object Loading : ResetResult()
+    object Success : ResetResult()
+    data class Error(val message: String) : ResetResult()
 }

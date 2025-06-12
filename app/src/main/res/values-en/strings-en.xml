@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DomoTask</string>
+
+    <!-- Generic -->
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+    <string name="title">Title</string>
+    <string name="description">Description</string>
+    <string name="urgency">Urgency</string>
+    <string name="name">Name</string>
+    <string name="order">Order</string>
+    <string name="add">Add</string>
+    <string name="error">Error</string>
+    <string name="close">Close</string>
+    <string name="send">Send</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+
+    <!-- Login Screen -->
+    <string name="label_email">User or Email</string>
+    <string name="label_password">Password</string>
+    <string name="cd_app_icon">App Icon</string>
+    <string name="cd_toggle_password">Show/Hide password</string>
+    <string name="cd_google_logo">Google logo</string>
+    <string name="button_login">Log In</string>
+    <string name="text_sign_in_with_google">Sign in with Google</string>
+    <string name="text_no_account">Don\'t have an account? Sign up</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="text_forgot_password">¿Forgot password?</string>
+
+    <!-- Board Screen -->
+    <string name="cd_avatar_of">Avatar of %1$s</string>
+    <string name="cd_avatar">Avatar</string>
+    <string name="cd_member_photo">Photo of %1$s</string>
+    <string name="back">Back</string>
+    <string name="filter">Filter</string>
+    <string name="more_options">More options</string>
+    <string name="filter_all">All</string>
+    <string name="filter_unassigned">Unassigned</string>
+    <string name="menu_manage_members">Manage members</string>
+    <string name="menu_edit_board">Edit board</string>
+    <string name="menu_delete_board">Delete board</string>
+    <string name="menu_leave_board">Leave board</string>
+    <string name="confirm_delete_title">Confirm deletion</string>
+    <string name="confirm_delete_board_text">Are you sure you want to delete this board? This action cannot be undone.</string>
+    <string name="confirm_leave_title">Confirm leave</string>
+    <string name="confirm_leave_text">Are you sure you want to leave this board?</string>
+    <string name="confirm_leave_confirm">Yes, leave</string>
+    <string name="add_status">Add Status</string>
+    <string name="add_ticket">Add Ticket</string>
+    <string name="add_status_label_name">Status name</string>
+    <string name="members_title">Board members</string>
+    <string name="invite_member_label">Invite member</string>
+    <string name="remove_member_label">Borrar miembro</string>
+    <string name="invite_member_confirm">Invite</string>
+    <string name="confirm_delete_member_text">Are you sure you want to remove %1$s from this board?</string>
+    <string name="delete_member_option">Delete user\'s tickets</string>
+    <string name="yes_delete">Yes, delete</string>
+    <string name="ticketcol_edit_column">Edit column</string>
+    <string name="ticketcol_delete_column">Delete column</string>
+    <string name="confirm_delete_column_text">Are you sure you want to delete this column?</string>
+    <string name="confirm_delete_column_confirm">Yes</string>
+    <string name="confirm_delete_column_cancel">No</string>
+    <string name="move_to">Move to %1$s</string>
+    <string name="delete_ticket_option">Delete ticket</string>
+    <string name="confirm_delete_ticket_text">Are you sure you want to delete this ticket?</string>
+    <string name="confirm_delete_ticket_confirm">Yes</string>
+    <string name="confirm_delete_ticket_cancel">No</string>
+    <string name="create_ticket_title">New Ticket</string>
+    <string name="create_ticket_error_empty_title">Title cannot be empty</string>
+    <string name="create_ticket_label_assigned_to">Assigned to</string>
+    <string name="create_ticket_placeholder_select_member">Select member</string>
+
+    <!-- HomeScreen -->
+    <string name="toast_action_completed">Action completed</string>
+    <string name="home_title">HOME</string>
+    <string name="topbar_invitations">Invitations</string>
+    <string name="fab_create_board">Create board</string>
+    <string name="home_no_boards">No boards found</string>
+    <string name="new_board_title">New board</string>
+    <string name="new_board_label_name">Board name</string>
+    <string name="new_board_label_desc">Description</string>
+    <string name="invite_pending_title">Pending invitations</string>
+    <string name="invite_accept">Accept invitation</string>
+    <string name="invite_reject">Reject invitation</string>
+    <string name="board_created_by">Created by: %1$s</string>
+
+    <!-- ProfileScreen -->
+    <string name="cd_new_profile_pic">New profile photo</string>
+    <string name="invitation_code_label">Invitation code</string>
+    <string name="cd_copy_code">Copy code</string>
+    <string name="snackbar_code_copied">Code copied</string>
+    <string name="change_password">Change password</string>
+    <string name="change_profile_image">Change profile image</string>
+    <string name="confirm_change_password_title">Are you sure you want to change the password?</string>
+    <string name="confirm_change_password_text">You will receive an email in your associated address.</string>
+    <string name="confirm_yes_send">Yes, send</string>
+
+    <!-- RegisterScreen -->
+    <string name="terms_title">Domes Task Terms of Use</string>
+    <string name="terms_text_intro">Welcome to Domes Task. These are the terms of use:</string>
+    <string name="terms_item1">1. The creator of this app is Marius Tankelevicius.</string>
+    <string name="terms_item2">2. Domes Task is a task and collaborative board management app.</string>
+    <string name="terms_item3">3. By registering, you agree that your information will be stored on our servers.</string>
+    <string name="terms_item4">4. We reserve the right to modify these terms at any time.</string>
+    <string name="terms_item5">5. The creator\'s responsibility ends with the correct use of the app.</string>
+    <string name="terms_item6">6. Do not share sensitive personal data without authorization.</string>
+    <string name="terms_item7">7. Any breach may result in suspension of your account.</string>
+    <string name="terms_item8">8. For more information, visit our website or contact us by email.</string>
+    <string name="terms_accept_label">I accept the terms of use</string>
+    <string name="terms_accept_button">Accept and close</string>
+    <string name="register_title">Create account</string>
+    <string name="label_name">Name</string>
+    <string name="button_register">Register</string>
+    <string name="login_prompt">Already have an account? Log in</string>
+
+    <!-- TicketScreen -->
+    <string name="comment_label_new">New comment</string>
+    <string name="comment_option_gallery">Gallery</string>
+    <string name="comment_option_camera">Camera</string>
+    <string name="topbar_back">Back</string>
+    <string name="topbar_confirm_edit">Confirm edit</string>
+    <string name="field_label_title">Title</string>
+    <string name="field_label_description">Description</string>
+    <string name="field_label_urgency">Urgency</string>
+    <string name="created_by">Created by: %1$s</string>
+    <string name="button_create_related">Create related task</string>
+    <string name="label_subtasks">Subtasks</string>
+    <string name="button_go_to_parent">Go to parent task</string>
+    <string name="label_comments">Comments</string>
+    <string name="dialog_image_enlarged">Image enlarged</string>
+    <string name="comment_edit_label">Edit comment</string>
+    <string name="dialog_image_comment">Comment image</string>
+    <string name="label_edited">(Edited)</string>
+    <string name="label_comment_by">By: %1$s</string>
+    <string name="label_comment_date">Date: %1$s</string>
+
+    <string name="button_create">Create</string>
+</resources>

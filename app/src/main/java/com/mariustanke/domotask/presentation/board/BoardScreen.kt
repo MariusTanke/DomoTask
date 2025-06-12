@@ -1,8 +1,10 @@
 package com.mariustanke.domotask.presentation.board
 
 import android.annotation.SuppressLint
+import android.widget.Space
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,11 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -64,11 +69,33 @@ fun BoardScreen(
     var showMemberDialog by remember { mutableStateOf(false) }
     var inviteInput by remember { mutableStateOf("") }
 
+    var memberToDelete by remember { mutableStateOf<User?>(null) }
+    var removeUserTickets by remember { mutableStateOf(false) }
+
     val boardData by viewModel.board.collectAsState()
     val tickets by viewModel.tickets.collectAsState()
     val statuses by viewModel.statuses.collectAsState()
     val members by viewModel.members.collectAsState()
     val inviteState by viewModel.inviteState.collectAsState()
+
+    val currentUserId = viewModel.currentUser?.uid
+
+    val previousMembers = remember { mutableStateOf<List<User>>(emptyList()) }
+
+    LaunchedEffect(members) {
+        val prev = previousMembers.value
+        val curr = members
+
+        if (currentUserId != null) {
+            val wasInPrev = prev.any { it.id == currentUserId }
+            val isInCurr = curr.any { it.id == currentUserId }
+            if (wasInPrev && !isInCurr) {
+                onBackClick()
+            }
+        }
+
+        previousMembers.value = curr
+    }
 
     LaunchedEffect(inviteState) {
         inviteState?.let { result ->
@@ -89,7 +116,7 @@ fun BoardScreen(
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         topBar = {
-            viewModel.currentUser?.uid?.let {
+            currentUserId?.let { id ->
                 TopBar(
                     boardName = boardData?.name ?: "",
                     showMenu = showMenu,
@@ -104,10 +131,15 @@ fun BoardScreen(
                     onLeaveBoard = {
                         viewModel.removeMember(
                             boardId,
-                            viewModel.currentUser?.uid.orEmpty()
+                            id,
+                            removeUserTickets
                         )
                     },
-                    currentUserId = it,
+                    onDeleteBoard = {
+                        viewModel.deleteBoard(boardId)
+                        onBackClick()
+                    },
+                    currentUserId = id,
                     onAddStatusClick = {
                         showAddStatusDialog = true
                         showMenu = false
@@ -119,7 +151,7 @@ fun BoardScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir ticket")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_ticket))
             }
         }
     ) { innerPadding ->
@@ -148,7 +180,7 @@ fun BoardScreen(
             ) {
                 statuses.sortedBy { it.order }.forEach { status ->
                     val columnTickets = ticketsFiltered.filter { it.status == status.id }
-                    boardData?.let {
+                    boardData?.let { board ->
                         TicketColumn(
                             status = status,
                             members = members,
@@ -157,7 +189,7 @@ fun BoardScreen(
                             viewModel = viewModel,
                             boardId = boardId,
                             onTicketClick = onTicketClick,
-                            boardOwnerId = it.createdBy
+                            boardOwnerId = board.createdBy
                         )
                     }
                 }
@@ -172,7 +204,7 @@ fun BoardScreen(
                                 title = title,
                                 description = desc,
                                 urgency = urg,
-                                createdBy = viewModel.currentUser?.uid.orEmpty(),
+                                createdBy = currentUserId.orEmpty(),
                                 assignedTo = assigned,
                                 createdAt = System.currentTimeMillis(),
                                 status = statuses.firstOrNull()?.id.orEmpty()
@@ -188,13 +220,13 @@ fun BoardScreen(
             if (showAddStatusDialog) {
                 AlertDialog(
                     onDismissRequest = { showAddStatusDialog = false },
-                    title = { Text("Añadir Estado") },
+                    title = { Text(stringResource(R.string.add_status)) },
                     text = {
                         Column {
                             OutlinedTextField(
                                 value = newStatusName,
                                 onValueChange = { newStatusName = it },
-                                label = { Text("Nombre del estado") },
+                                label = { Text(stringResource(R.string.add_status_label_name)) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(8.dp))
@@ -203,7 +235,7 @@ fun BoardScreen(
                                 onValueChange = {
                                     newStatusOrder = it.toIntOrNull() ?: newStatusOrder
                                 },
-                                label = { Text("Orden") },
+                                label = { Text(stringResource(R.string.order)) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -215,10 +247,10 @@ fun BoardScreen(
                                 Status(name = newStatusName, order = newStatusOrder)
                             )
                             showAddStatusDialog = false
-                        }) { Text("Añadir") }
+                        }) { Text(stringResource(R.string.add)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showAddStatusDialog = false }) { Text("Cancelar") }
+                        TextButton(onClick = { showAddStatusDialog = false }) { Text(stringResource(R.string.cancel)) }
                     }
                 )
             }
@@ -233,7 +265,7 @@ fun BoardScreen(
 
                 AlertDialog(
                     onDismissRequest = { showMemberDialog = false },
-                    title = { Text("Miembros del tablero") },
+                    title = { Text(stringResource(R.string.members_title)) },
                     text = {
                         Column(
                             modifier = Modifier
@@ -258,7 +290,7 @@ fun BoardScreen(
                                             if (user.photo != null) {
                                                 AsyncImage(
                                                     model = user.photo,
-                                                    contentDescription = "Avatar de ${user.name}",
+                                                    contentDescription = stringResource(R.string.cd_avatar_of, user.name),
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .clip(CircleShape),
@@ -269,7 +301,7 @@ fun BoardScreen(
                                             } else {
                                                 Icon(
                                                     imageVector = Icons.Default.Person,
-                                                    contentDescription = "Avatar",
+                                                    contentDescription = stringResource(id = R.string.cd_avatar),
                                                     modifier = Modifier.size(32.dp)
                                                 )
                                             }
@@ -288,13 +320,14 @@ fun BoardScreen(
                                                     .padding(start = 8.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                if (user.id != viewModel.currentUser?.uid) {
+                                                if (user.id != currentUserId) {
                                                     IconButton(onClick = {
-                                                        viewModel.removeMember(boardId, user.id)
+                                                        memberToDelete = user
+                                                        removeUserTickets = false
                                                     }) {
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
-                                                            contentDescription = "Borrar miembro",
+                                                            contentDescription = stringResource(R.string.delete_member_option),
                                                             modifier = Modifier.size(28.dp)
                                                         )
                                                     }
@@ -308,7 +341,7 @@ fun BoardScreen(
                             OutlinedTextField(
                                 value = inviteInput,
                                 onValueChange = { inviteInput = it },
-                                label = { Text("Invitar miembro") },
+                                label = { Text(stringResource(R.string.invite_member_label)) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -318,12 +351,61 @@ fun BoardScreen(
                             viewModel.inviteMember(boardId, inviteInput)
                             inviteInput = ""
                         }) {
-                            Text("Invitar")
+                            Text(stringResource(R.string.invite_member_confirm))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showMemberDialog = false }) {
-                            Text("Cancelar")
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
+
+            memberToDelete?.let { user ->
+                AlertDialog(
+                    onDismissRequest = {
+                        memberToDelete = null
+                        removeUserTickets = false
+                    },
+                    title = { Text(stringResource(R.string.confirm_delete_title)) },
+                    text = {
+                        Column {
+                            Text(stringResource(R.string.confirm_delete_member_text, user.name))
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.delete_member_option),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Switch(
+                                    checked = removeUserTickets,
+                                    onCheckedChange = { removeUserTickets = it }
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.removeMember(boardId, user.id, removeUserTickets)
+                            memberToDelete = null
+                            removeUserTickets = false
+                        }) {
+                            Text(stringResource(R.string.yes_delete))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            memberToDelete = null
+                            removeUserTickets = false
+                        }) {
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -331,6 +413,7 @@ fun BoardScreen(
         }
     }
 }
+
 
 @SuppressLint("UnrememberedMutableState")
 @Composable
@@ -346,6 +429,7 @@ fun TopBar(
     currentUserId: String,
     boardOwnerId: String,
     onLeaveBoard: () -> Unit,
+    onDeleteBoard: () -> Unit,
     onFilterSelected: (String?) -> Unit,
 ) {
     var barWidthPx by remember { mutableIntStateOf(0) }
@@ -357,6 +441,9 @@ fun TopBar(
     }
     var showFilterMenu by remember { mutableStateOf(false) }
 
+    var showConfirmDeleteBoardDialog by remember { mutableStateOf(false) }
+    var showConfirmLeaveDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -364,42 +451,78 @@ fun TopBar(
             .background(MaterialTheme.colorScheme.primaryContainer)
             .onGloballyPositioned { barWidthPx = it.size.width }
     ) {
-        IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart)) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver atrás",
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-        Text(
-            boardName,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.align(Alignment.Center)
-        )
-
-        IconButton(
-            onClick = { showFilterMenu = true },
+        Row(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 48.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Settings, contentDescription = "Filtrar", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = boardName,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f) // Ocupa el espacio restante
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { showFilterMenu = true },
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_filter),
+                        contentDescription = stringResource(R.string.filter),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onMenuClick,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.more_options),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
+
         DropdownMenu(
             expanded = showFilterMenu,
             onDismissRequest = { showFilterMenu = false },
             offset = DpOffset(x = (-40).dp, y = 0.dp)
         ) {
             DropdownMenuItem(
-                text = { Text("Todos") },
+                text = { Text(stringResource(R.string.filter_all)) },
                 onClick = {
                     onFilterSelected(null)
                     showFilterMenu = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("Sin asignar") },
+                text = { Text(stringResource(R.string.filter_unassigned)) },
                 onClick = {
                     onFilterSelected("")
                     showFilterMenu = false
@@ -417,13 +540,6 @@ fun TopBar(
             }
         }
 
-        IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.CenterEnd)) {
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = "Más opciones",
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = onDismissMenu,
@@ -432,22 +548,83 @@ fun TopBar(
         ) {
             if (currentUserId == boardOwnerId) {
                 DropdownMenuItem(
-                    text = { Text("Gestionar miembros") },
+                    text = { Text(stringResource(R.string.menu_manage_members)) },
                     onClick = onMemberManagementClick
                 )
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text("Editar tabla") }, onClick = onDismissMenu)
+
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_edit_board)) },
+                    onClick = onDismissMenu
+                )
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text("Añadir Estado") }, onClick = onAddStatusClick)
+
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.add_status)) },
+                    onClick = onAddStatusClick
+                )
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text("Eliminar tabla") }, onClick = onDismissMenu)
+
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_delete_board)) },
+                    onClick = {
+                        showConfirmDeleteBoardDialog = true
+                        onDismissMenu()
+                    }
+                )
             } else {
-                DropdownMenuItem(text = { Text("Salir de la tabla") }, onClick = {
-                    onLeaveBoard()
-                    onBackClick()
-                })
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_leave_board)) },
+                    onClick = {
+                        showConfirmLeaveDialog = true
+                        onDismissMenu()
+                    }
+                )
             }
         }
+    }
+
+    if (showConfirmDeleteBoardDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDeleteBoardDialog = false },
+            title = { Text(text = stringResource(R.string.confirm_delete_title)) },
+            text = { Text(stringResource(R.string.confirm_delete_board_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteBoard()
+                    showConfirmDeleteBoardDialog = false
+                }) {
+                    Text(stringResource(R.string.yes_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDeleteBoardDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showConfirmLeaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmLeaveDialog = false },
+            title = { Text(text = stringResource(R.string.confirm_leave_title)) },
+            text = { Text(stringResource(R.string.confirm_leave_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onLeaveBoard()
+                    onBackClick()
+                    showConfirmLeaveDialog = false
+                }) {
+                    Text(stringResource(R.string.confirm_leave_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmLeaveDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -465,6 +642,8 @@ fun TicketColumn(
     var editing by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf(status.name) }
     var editOrder by remember { mutableIntStateOf(status.order) }
+
+    var showDeleteStatusDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -485,7 +664,7 @@ fun TicketColumn(
                         OutlinedTextField(
                             value = editName,
                             onValueChange = { editName = it },
-                            label = { Text("Nombre") },
+                            label = { Text(stringResource(R.string.name)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
@@ -493,7 +672,7 @@ fun TicketColumn(
                         OutlinedTextField(
                             value = editOrder.toString(),
                             onValueChange = { editOrder = it.toIntOrNull() ?: editOrder },
-                            label = { Text("Orden") },
+                            label = { Text(stringResource(R.string.order)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
@@ -509,14 +688,14 @@ fun TicketColumn(
                                 )
                                 editing = false
                             }) {
-                                Icon(Icons.Default.Check, contentDescription = "Guardar")
+                                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.save))
                             }
                             IconButton(onClick = {
                                 editName = status.name
                                 editOrder = status.order
                                 editing = false
                             }) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancelar")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
                             }
                         }
                     }
@@ -530,13 +709,11 @@ fun TicketColumn(
                         Text(status.name, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = { editing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar columna")
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.ticketcol_edit_column))
                         }
                         if (tickets.isEmpty()) {
-                            IconButton(onClick = {
-                                viewModel.removeBoardStatus(boardId, status.id)
-                            }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar columna")
+                            IconButton(onClick = { showDeleteStatusDialog = true }) {
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.ticketcol_delete_column))
                             }
                         }
                     }
@@ -554,7 +731,7 @@ fun TicketColumn(
             )
 
             tickets.forEach { ticket ->
-                val assignedUser = members.find { it.id == ticket.assignedTo}
+                val assignedUser = members.find { it.id == ticket.assignedTo }
                 PostItTicketCard(
                     ticket = ticket,
                     allStatuses = allStatuses,
@@ -571,6 +748,27 @@ fun TicketColumn(
             }
         }
     }
+
+    if (showDeleteStatusDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteStatusDialog = false },
+            title = { Text(text = stringResource(R.string.confirm_delete_title)) },
+            text = { Text(stringResource(R.string.confirm_delete_column_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeBoardStatus(boardId, status.id)
+                    showDeleteStatusDialog = false
+                }) {
+                    Text(stringResource(R.string.yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteStatusDialog = false }) {
+                    Text(stringResource(R.string.no))
+                }
+            }
+        )
+    }
 }
 
 fun initials(name: String): String {
@@ -582,7 +780,6 @@ fun initials(name: String): String {
         .joinToString("")
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PostItTicketCard(
     ticket: Ticket,
@@ -595,6 +792,16 @@ fun PostItTicketCard(
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    val urgencyColor = when (ticket.urgency) {
+        1 -> Color(0xFFE8F5E9)
+        2 -> Color(0xFFFFFDE7)
+        3 -> Color(0xFFFFF9C4)
+        4 -> Color(0xFFFFE0B2)
+        5 -> Color(0xFFFFCDD2)
+        else -> MaterialTheme.colorScheme.tertiaryContainer
+    }
 
     Box {
         Card(
@@ -609,53 +816,74 @@ fun PostItTicketCard(
                         }
                     }
                 ),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = urgencyColor),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(ticket.title, style = MaterialTheme.typography.titleMedium)
-                if (ticket.description.isNotBlank()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(ticket.description, style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(Modifier.height(8.dp))
-                val urgText = UrgencyEnum.entries
-                    .find { it.value == ticket.urgency }
-                    ?.label ?: "Desconocida"
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = 0.05f))
+                )
 
-                Text("Urgencia: $urgText", style = MaterialTheme.typography.labelSmall)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 16.dp
+                        )
+                ) {
+                    Text(
+                        text = ticket.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
 
-                if (assignedToName.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Spacer(Modifier.width(8.dp).weight(1f))
-                        if (!assignedToPhoto.isNullOrBlank()) {
-                            AsyncImage(
-                                model = assignedToPhoto,
-                                contentDescription = "Avatar de $assignedToName",
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape),
-                                placeholder = painterResource(R.drawable.placeholder_avatar),
-                                error = painterResource(R.drawable.placeholder_avatar),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = initials(assignedToName),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                    if (ticket.description.isNotBlank()) {
+                        Text(
+                            text = ticket.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    if (assignedToName.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            if (!assignedToPhoto.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = assignedToPhoto,
+                                    contentDescription = stringResource(id = R.string.cd_avatar_of, assignedToName),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                      .clip(CircleShape),
+                                    placeholder = painterResource(R.drawable.placeholder_avatar),
+                                    error = painterResource(R.drawable.placeholder_avatar),
+                                    contentScale = ContentScale.Crop
+                                  )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = initials(assignedToName),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
                             }
                         }
                     }
@@ -672,7 +900,7 @@ fun PostItTicketCard(
                 .sortedBy { it.order }
                 .forEach { statusItem ->
                     DropdownMenuItem(
-                        text = { Text("Mover a ${statusItem.name}") },
+                        text = { Text(stringResource(R.string.move_to, statusItem.name)) },
                         onClick = {
                             onMove(statusItem.id)
                             expanded = false
@@ -682,13 +910,34 @@ fun PostItTicketCard(
             if (ticket.createdBy == currentUserId) {
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Borrar ticket") },
+                    text = { Text(stringResource(R.string.delete_ticket_option)) },
                     onClick = {
-                        onDelete()
+                        showConfirmDialog = true
                         expanded = false
                     }
                 )
             }
+        }
+
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text(text = stringResource(R.string.confirm_delete_title)) },
+                text = { Text(stringResource(R.string.confirm_delete_ticket_text)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDelete()
+                        showConfirmDialog = false
+                    }) {
+                        Text(stringResource(R.string.yes))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) {
+                        Text(stringResource(R.string.no))
+                    }
+                }
+            )
         }
     }
 }
@@ -710,24 +959,42 @@ fun CreateTicketDialog(
     var assignedToId by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
+    var titleError by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nuevo Ticket") },
+        title = { Text(stringResource(R.string.create_ticket_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Título") },
+                    onValueChange = {
+                        title = it
+                        if (titleError) {
+                            titleError = false
+                        }
+                    },
+                    label = { Text(stringResource(R.string.title)) },
+                    isError = titleError,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (titleError) {
+                    Text(
+                        text = stringResource(R.string.create_ticket_error_empty_title),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Descripción") },
+                    label = { Text(stringResource(R.string.description)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 100.dp),
@@ -745,10 +1012,12 @@ fun CreateTicketDialog(
                         value = selectedUrgency.label,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Urgencia") },
+                        label = { Text(stringResource(R.string.urgency)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = urgExpanded) },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
+                            .focusRequester(focusRequester)
                             .clickable { urgExpanded = true }
                     )
                     ExposedDropdownMenu(
@@ -780,10 +1049,10 @@ fun CreateTicketDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = members.find { it.id == assignedToId }?.name ?: "Selecciona miembro",
+                        value = members.find { it.id == assignedToId }?.name ?: stringResource(R.string.create_ticket_placeholder_select_member),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Asignado a") },
+                        label = { Text(stringResource(R.string.create_ticket_label_assigned_to)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memExpanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -801,7 +1070,7 @@ fun CreateTicketDialog(
                                     if (member.photo != null) {
                                         AsyncImage(
                                             model = member.photo,
-                                            contentDescription = "Foto de ${member.name}",
+                                            contentDescription = stringResource(R.string.cd_member_photo, member.name),
                                             modifier = Modifier
                                                 .size(32.dp)
                                                 .clip(CircleShape),
@@ -838,20 +1107,26 @@ fun CreateTicketDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                onCreate(
-                    title,
-                    description,
-                    selectedUrgency.value,
-                    assignedToId
-                )
+                if (title.isNotBlank()) {
+                    titleError = false
+                    onCreate(
+                        title,
+                        description,
+                        selectedUrgency.value,
+                        assignedToId
+                    )
+                } else {
+                    titleError = true
+                }
             }) {
-                Text("Crear")
+                Text(stringResource(R.string.create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
 }
+

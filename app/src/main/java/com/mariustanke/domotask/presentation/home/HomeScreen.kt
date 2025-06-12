@@ -3,6 +3,7 @@ package com.mariustanke.domotask.presentation.home
 import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,8 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mariustanke.domotask.R
 import com.mariustanke.domotask.domain.uiModels.BoardUiModel
 
 @Composable
@@ -27,7 +30,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToBoard: (boardId: String) -> Unit
 ) {
-    val user by viewModel.user.collectAsState()
     val boards by viewModel.boards.collectAsState()
     val invitations by viewModel.invitations.collectAsState()
 
@@ -38,35 +40,35 @@ fun HomeScreen(
     var newBoardName by remember { mutableStateOf("") }
     var newBoardDesc by remember { mutableStateOf("") }
 
-    LaunchedEffect(user) {
-        viewModel.loadUser()
-    }
-
     LaunchedEffect(viewModel.acceptRejectState.collectAsState().value) {
         viewModel.acceptRejectState.value?.let { result ->
             if (result.isSuccess) {
                 Toast.makeText(context, "Acción completada", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, result.exceptionOrNull()?.message ?: "Error", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    result.exceptionOrNull()?.message ?: "Error",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             viewModel.clearAcceptRejectState()
-            viewModel.loadUser()
         }
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         topBar = {
             TopBar(
-                title = "INICIO",
-                invitations = user?.invitations.orEmpty(),
+                title = stringResource(R.string.home_title),
+                invitations = invitations.map { it.id },
                 onInviteClick = {
                     showInviteDialog = true
-                },
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showNewDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Crear tablero")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_create_board))
             }
         }
     ) { padding ->
@@ -78,7 +80,7 @@ fun HomeScreen(
                 .padding(16.dp)
         ) {
             if (boards.isEmpty()) {
-                Text("No boards found", Modifier.align(Alignment.CenterHorizontally))
+                Text(stringResource(R.string.home_no_boards), Modifier.align(Alignment.CenterHorizontally))
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     boards.forEach { board ->
@@ -94,13 +96,13 @@ fun HomeScreen(
         if (showNewDialog) {
             AlertDialog(
                 onDismissRequest = { showNewDialog = false },
-                title = { Text("Nuevo tablero") },
+                title = { Text(stringResource(R.string.new_board_title)) },
                 text = {
                     Column {
                         OutlinedTextField(
                             value = newBoardName,
                             onValueChange = { newBoardName = it },
-                            label = { Text("Nombre del tablero") },
+                            label = { Text(stringResource(R.string.new_board_title)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -108,7 +110,7 @@ fun HomeScreen(
                         OutlinedTextField(
                             value = newBoardDesc,
                             onValueChange = { newBoardDesc = it },
-                            label = { Text("Descripción") },
+                            label = { Text(stringResource(R.string.description)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 100.dp)
@@ -123,10 +125,10 @@ fun HomeScreen(
                         showNewDialog = false
                         newBoardName = ""
                         newBoardDesc = ""
-                    }) { Text("Crear") }
+                    }) { Text(stringResource(R.string.create)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showNewDialog = false }) { Text("Cancelar") }
+                    TextButton(onClick = { showNewDialog = false }) { Text(stringResource(R.string.cancel)) }
                 }
             )
         }
@@ -134,7 +136,7 @@ fun HomeScreen(
         if (showInviteDialog) {
             AlertDialog(
                 onDismissRequest = { showInviteDialog = false },
-                title = { Text("Invitaciones pendientes") },
+                title = { Text(stringResource(R.string.invite_pending_title)) },
                 text = {
                     Column(Modifier.animateContentSize()) {
                         invitations.forEach { boardUi ->
@@ -160,7 +162,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Check,
-                                            contentDescription = "Aceptar invitación",
+                                            contentDescription = stringResource(R.string.invite_accept),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -174,7 +176,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
-                                            contentDescription = "Rechazar invitación",
+                                            contentDescription = stringResource(R.string.invite_reject),
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
@@ -186,7 +188,7 @@ fun HomeScreen(
                 confirmButton = {},
                 dismissButton = {
                     TextButton(onClick = { showInviteDialog = false }) {
-                        Text("Cerrar")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -221,7 +223,7 @@ fun BoardCard(
                     )
                 }
                 Text(
-                    text = "Created by: ${board.createdByName}",
+                    text = stringResource(R.string.board_created_by, board.createdByName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -247,7 +249,9 @@ fun TopBar(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp)
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(start = 16.dp)
         )
 
         if (invitations.isNotEmpty()) {
@@ -257,15 +261,21 @@ fun TopBar(
                     .align(Alignment.CenterEnd)
                     .padding(end = 16.dp),
                 shape = MaterialTheme.shapes.small,
-                border = ButtonDefaults.outlinedButtonBorder
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             ) {
                 Icon(
                     Icons.Default.Email,
-                    contentDescription = "Invitaciones",
+                    contentDescription = stringResource(R.string.topbar_invitations),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("${invitations.size}", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(
+                    text = "${invitations.size}",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
     }

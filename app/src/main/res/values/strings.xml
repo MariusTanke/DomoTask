@@ -1,3 +1,141 @@
 <resources>
     <string name="app_name">DomoTask</string>
+
+    <!-- Generic -->
+    <string name="yes">Si</string>
+    <string name="no">No</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="create">Crear</string>
+    <string name="title">Título</string>
+    <string name="description">Descripción</string>
+    <string name="urgency">Urgencia</string>
+    <string name="name">Nombre</string>
+    <string name="order">Orden</string>
+    <string name="close">Cerrar</string>
+    <string name="error">Error</string>
+    <string name="delete">Borrar</string>
+    <string name="edit">Editar</string>
+    <string name="send">Enviar</string>
+
+    <!-- Login Screen -->
+    <string name="label_email">Usuario o Email</string>
+    <string name="label_password">Contraseña</string>
+    <string name="cd_app_icon">Icono de la aplicación</string>
+    <string name="cd_toggle_password">Mostrar/Ocultar contraseña</string>
+    <string name="cd_google_logo">Logotipo de Google</string>
+    <string name="button_login">Iniciar sesión</string>
+    <string name="text_sign_in_with_google">Iniciar sesión con Google</string>
+    <string name="text_no_account">¿No tienes cuenta? Regístrate</string>
+    <string name="error_unknown">Error desconocido</string>
+    <string name="back">Volver atrás</string>
+    <string name="add">Añadir</string>
+    <string name="text_forgot_password">¿Olvidaste la contraseña?</string>
+
+    <!-- Board Screen -->
+    <string name="cd_avatar_of">Avatar de %1$s</string>
+    <string name="cd_avatar">Avatar</string>
+    <string name="cd_member_photo">Foto de %1$s</string>
+    <string name="filter">Filtrar</string>
+    <string name="more_options">Más opciones</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_unassigned">Sin asignar</string>
+    <string name="menu_manage_members">Gestionar miembros</string>
+    <string name="menu_edit_board">Editar tabla</string>
+    <string name="menu_delete_board">Eliminar tabla</string>
+    <string name="menu_leave_board">Salir de la tabla</string>
+    <string name="confirm_delete_title">Confirmar eliminación</string>
+    <string name="confirm_delete_board_text">¿Estás seguro de que deseas eliminar esta tabla? Esta acción no se puede deshacer.</string>
+    <string name="yes_delete">Sí, eliminar</string>
+    <string name="confirm_leave_title">Confirmar salida</string>
+    <string name="confirm_leave_text">¿Estás seguro de que deseas salir de esta tabla?</string>
+    <string name="confirm_leave_confirm">Sí, salir</string>
+    <string name="add_status">Añadir Estado</string>
+    <string name="add_ticket">Añadir Ticket</string>
+    <string name="add_status_label_name">Nombre del estado</string>
+    <string name="members_title">Miembros del tablero</string>
+    <string name="invite_member_label">Invitar miembro</string>
+    <string name="remove_member_label">Borrar miembro</string>
+    <string name="invite_member_confirm">Invitar</string>
+    <string name="confirm_delete_member_text">¿Estás seguro de que deseas eliminar a %1$s de esta tabla?</string>
+    <string name="delete_member_option">Eliminar tickets del usuario</string>
+    <string name="ticketcol_edit_column">Editar columna</string>
+    <string name="ticketcol_delete_column">Eliminar columna</string>
+    <string name="confirm_delete_column_text">¿Estás seguro de que deseas eliminar esta columna?</string>
+    <string name="confirm_delete_column_confirm">Sí</string>
+    <string name="confirm_delete_column_cancel">No</string>
+    <string name="move_to">Mover a %1$s</string>
+    <string name="delete_ticket_option">Borrar ticket</string>
+    <string name="confirm_delete_ticket_text">¿Estás seguro de que deseas eliminar este ticket?</string>
+    <string name="confirm_delete_ticket_confirm">Sí</string>
+    <string name="confirm_delete_ticket_cancel">No</string>
+    <string name="create_ticket_title">Nuevo Ticket</string>
+    <string name="create_ticket_error_empty_title">El título no puede estar vacío</string>
+    <string name="create_ticket_label_assigned_to">Asignado a</string>
+    <string name="create_ticket_placeholder_select_member">Selecciona miembro</string>
+
+    <!-- HomeScreen -->
+    <string name="toast_action_completed">Acción completada</string>
+    <string name="home_title">INICIO</string>
+    <string name="topbar_invitations">Invitaciones</string>
+    <string name="fab_create_board">Crear tablero</string>
+    <string name="home_no_boards">No se han encontrado tableros</string>
+    <string name="new_board_title">Nuevo tablero</string>
+    <string name="new_board_label_name">Nombre del tablero</string>
+    <string name="new_board_label_desc">Descripción</string>
+    <string name="invite_pending_title">Invitaciones pendientes</string>
+    <string name="invite_accept">Aceptar invitación</string>
+    <string name="invite_reject">Rechazar invitación</string>
+    <string name="board_created_by">Creado por: %1$s</string>
+
+    <!-- PorfileScreen -->
+    <string name="cd_new_profile_pic">Nueva foto de perfil</string>
+    <string name="invitation_code_label">Código de invitación</string>
+    <string name="cd_copy_code">Copiar código</string>
+    <string name="snackbar_code_copied">Código copiado</string>
+    <string name="change_password">Cambiar contraseña</string>
+    <string name="change_profile_image">Cambiar imagen de perfil</string>
+    <string name="confirm_change_password_title">¿Estás seguro de que deseas cambiar la contraseña?</string>
+    <string name="confirm_change_password_text">Recibirás un correo electrónico en tu email asociado.</string>
+    <string name="confirm_yes_send">Sí, enviar</string>
+
+    <!-- RegisterScreen -->
+    <string name="terms_title">Términos de uso de Domes Task</string>
+    <string name="terms_text_intro">Bienvenido a Domes Task. Estos son los términos de uso:</string>
+    <string name="terms_item1">1. El creador de esta aplicación es Marius Tankelevicius.</string>
+    <string name="terms_item2">2. Domes Task es una aplicación de gestión de tareas y tableros colaborativos.</string>
+    <string name="terms_item3">3. Al registrarte, aceptas que tu información se almacene en nuestros servidores.</string>
+    <string name="terms_item4">4. Nos reservamos el derecho de modificar estos términos en cualquier momento.</string>
+    <string name="terms_item5">5. La responsabilidad del creador finaliza en el uso correcto de la aplicación.</string>
+    <string name="terms_item6">6. No compartas datos personales sensibles sin autorización.</string>
+    <string name="terms_item7">7. Cualquier incumplimiento puede resultar en la suspensión de tu cuenta.</string>
+    <string name="terms_item8">8. Para más información, visita nuestra página web o contáctanos por email.</string>
+    <string name="terms_accept_label">Acepto los términos de uso</string>
+    <string name="terms_accept_button">Aceptar y cerrar</string>
+    <string name="register_title">Crear cuenta</string>
+    <string name="label_name">Nombre</string>
+    <string name="button_register">Registrarse</string>
+    <string name="login_prompt">¿Ya tienes cuenta? Inicia sesión</string>
+
+    <!-- ProfileScreen -->
+    <string name="comment_label_new">Nuevo comentario</string>
+    <string name="comment_option_gallery">Galería</string>
+    <string name="comment_option_camera">Cámara</string>
+    <string name="topbar_back">Volver atrás</string>
+    <string name="topbar_confirm_edit">Confirmar edición</string>
+    <string name="field_label_title">Título</string>
+    <string name="field_label_description">Descripción</string>
+    <string name="field_label_urgency">Urgencia</string>
+    <string name="created_by">Creado por: %1$s</string>
+    <string name="button_create_related">Crear tarea relacionada</string>
+    <string name="label_subtasks">Subtareas</string>
+    <string name="button_go_to_parent">Ir a la tarea principal</string>
+    <string name="label_comments">Comentarios</string>
+    <string name="dialog_image_enlarged">Imagen ampliada</string>
+    <string name="comment_edit_label">Editar comentario</string>
+    <string name="dialog_image_comment">Imagen del comentario</string>
+    <string name="label_edited">(Editado)</string>
+    <string name="label_comment_by">Por: %1$s</string>
+    <string name="label_comment_date">Fecha: %1$s</string>
+    <string name="button_create">Crear</string>
 </resources>

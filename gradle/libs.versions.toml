@@ -22,6 +22,7 @@ foundationAndroid = "1.7.2"
 playServicesFido = "20.0.1"
 firebaseStorageKtx = "21.0.2"
 coil = "2.4.0"
+uiTextGoogleFonts = "1.8.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -59,6 +60,7 @@ play-services-fido = { group = "com.google.android.gms", name = "play-services-f
 
 coil-core = { module = "io.coil-kt:coil", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

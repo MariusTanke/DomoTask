@@ -24,6 +24,28 @@ class HomeViewModel @Inject constructor(
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()
 
+    init {
+        observeCurrentUser()
+    }
+
+    private fun observeCurrentUser() {
+        val uid = authRepository.getCurrentUser()?.uid ?: return
+        userUseCases.getUserFlow(uid)
+            .onEach { fetchedUser ->
+                _user.value = fetchedUser
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun loadUser() {
+        viewModelScope.launch {
+            val uid = authRepository.getCurrentUser()?.uid ?: return@launch
+            userUseCases.getUser(uid)?.let { u ->
+                _user.value = u
+            }
+        }
+    }
+
     val boards: StateFlow<List<BoardUiModel>> = boardUseCases.getBoards()
         .combine(user) { boardList, user ->
             val currentUid = user?.id
@@ -63,17 +85,22 @@ class HomeViewModel @Inject constructor(
     private val _acceptRejectState = MutableStateFlow<Result<Unit>?>(null)
     val acceptRejectState: StateFlow<Result<Unit>?> = _acceptRejectState.asStateFlow()
 
-    init {
-        loadUser()
+    fun acceptInvitation(boardId: String) {
+        val uid = authRepository.getCurrentUser()?.uid ?: return
+        viewModelScope.launch {
+            _acceptRejectState.value = boardUseCases.acceptInvitationUseCase(boardId, uid)
+        }
     }
 
-    fun loadUser() {
+    fun rejectInvitation(boardId: String) {
+        val uid = authRepository.getCurrentUser()?.uid ?: return
         viewModelScope.launch {
-            val uid = authRepository.getCurrentUser()?.uid ?: return@launch
-            userUseCases.getUser(uid)?.let { u ->
-                _user.value = u
-            }
+            _acceptRejectState.value = boardUseCases.rejectInvitationUseCase(boardId, uid)
         }
+    }
+
+    fun clearAcceptRejectState() {
+        _acceptRejectState.value = null
     }
 
     fun createBoard(name: String, description: String) {
@@ -97,23 +124,5 @@ class HomeViewModel @Inject constructor(
                 boardUseCases.createBoardStatus(boardId, status)
             }
         }
-    }
-
-    fun acceptInvitation(boardId: String) {
-        val uid = authRepository.getCurrentUser()?.uid ?: return
-        viewModelScope.launch {
-            _acceptRejectState.value = boardUseCases.acceptInvitationUseCase(boardId, uid)
-        }
-    }
-
-    fun rejectInvitation(boardId: String) {
-        val uid = authRepository.getCurrentUser()?.uid ?: return
-        viewModelScope.launch {
-            _acceptRejectState.value = boardUseCases.rejectInvitationUseCase(boardId, uid)
-        }
-    }
-
-    fun clearAcceptRejectState() {
-        _acceptRejectState.value = null
     }
 }

@@ -6,7 +6,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +42,9 @@ fun ProfileScreen(
     ) { uri: Uri? ->
         uri?.let { viewModel.onProfileImageSelected(it) }
     }
+
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.snackbarMessage.collect { message ->
@@ -70,7 +76,7 @@ fun ProfileScreen(
                         if (!profile.photo.isNullOrEmpty()) {
                             AsyncImage(
                                 model = profile.photo,
-                                contentDescription = "Nueva foto de perfil",
+                                contentDescription = stringResource(R.string.cd_new_profile_pic),
                                 modifier = Modifier
                                     .size(300.dp)
                                     .clip(CircleShape),
@@ -109,7 +115,7 @@ fun ProfileScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Código de invitación",
+                                text = stringResource(R.string.invitation_code_label),
                                 style = MaterialTheme.typography.titleMedium,
                             )
 
@@ -135,36 +141,48 @@ fun ProfileScreen(
                                     },
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .offset(x = (profile.invitationCode.length * 6).dp + 12.dp) // Ajusta esta expresión según tipografía y tamaño
+                                        .offset(x = (profile.invitationCode.length * 6).dp + 12.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Copiar código",
+                                        imageVector = Icons.Filled.Edit,
+                                        contentDescription = stringResource(R.string.cd_copy_code),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(32.dp))
+                        Spacer(Modifier.height(25.dp))
 
                         Text(
-                            text = "Cambiar contraseña",
+                            text = stringResource(R.string.change_password),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable {
-                                viewModel.sendPasswordReset()
+                                showConfirmDialog = true
                             }
                         )
 
-                        Spacer(Modifier.height(32.dp))
+                        Spacer(Modifier.height(25.dp))
 
                         Text(
-                            text = "Cambiar imagen de perfil",
+                            text = stringResource(R.string.change_profile_image),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable {
                                 galleryLauncher.launch("image/*")
                             }
                         )
+
+                        Spacer(Modifier.height(25.dp))
+
+                        Text(
+                            text = "Consultar políticas de uso",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                showTermsDialog = true
+                            }
+                        )
+
+                        Spacer(Modifier.height(32.dp))
 
                         SnackbarHost(hostState = snackbarHostState)
                     }
@@ -172,10 +190,77 @@ fun ProfileScreen(
 
                 is ProfileState.Error -> {
                     Text(
-                        text = (state as ProfileState.Error).message ?: "Error",
+                        text = (state as ProfileState.Error).message
+                            ?: stringResource(R.string.error),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+
+            if (showConfirmDialog) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmDialog = false },
+                    title = { Text(text = stringResource(R.string.confirm_change_password_title)) },
+                    text = {
+                        Text(
+                            stringResource(R.string.confirm_change_password_text)
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.sendPasswordReset()
+                            showConfirmDialog = false
+                        }) {
+                            Text(stringResource(R.string.confirm_yes_send))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showConfirmDialog = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                )
+            }
+
+            if (showTermsDialog) {
+                AlertDialog(
+                    onDismissRequest = {  },
+                    title = { Text(stringResource(R.string.terms_title)) },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(stringResource(R.string.terms_text_intro))
+                            Spacer(Modifier.height(8.dp))
+                            Text(stringResource(R.string.terms_item1))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item2))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item3))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item4))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item5))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item6))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item7))
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.terms_item8))
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = { showTermsDialog = false }
+                        ) {
+                            Text(stringResource(R.string.close))
+                        }
+                    },
+                    dismissButton = {  }
+                )
             }
         }
     }

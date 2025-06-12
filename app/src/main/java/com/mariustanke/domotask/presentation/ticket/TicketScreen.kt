@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -96,7 +96,7 @@ fun TicketScreen(
                 viewModel.sendComment(boardId, ticketId, text, uri)
             },
             showTicketDialog = onCreateRelatedClick,
-            onSubTicketClick = onSubTicketClick
+            onSubTicketClick = onSubTicketClick,
         )
     }
 
@@ -170,6 +170,7 @@ fun TicketScaffold(
                             assignedTo = assignedTo
                         )
                     )
+                    onBackClick()
                 },
                 onBackClick = onBackClick
             )
@@ -233,6 +234,7 @@ fun TicketScaffold(
                         urgency = newUrg.toInt()
                         assignedTo = newAssigned
                     },
+                    onBackClick = onBackClick,
                     getUserName = getUserName,
                     showTicketDialog = showTicketDialog,
                     onSubTicketClick = onSubTicketClick
@@ -300,7 +302,7 @@ fun CommentInput(
                 value = newComment,
                 onValueChange = onCommentChange,
                 singleLine = false,
-                label = { Text("Nuevo comentario") },
+                label = { Text(stringResource(R.string.comment_label_new)) },
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 60.dp)
@@ -318,7 +320,7 @@ fun CommentInput(
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountBox,
+                        painter = painterResource(id = R.drawable.ic_upload_file),
                         contentDescription = "Adjuntar imagen"
                     )
                 }
@@ -327,14 +329,14 @@ fun CommentInput(
                     onDismissRequest = { showPickerMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Galería") },
+                        text = { Text(stringResource(R.string.comment_option_gallery)) },
                         onClick = {
                             showPickerMenu = false
                             galleryLauncher.launch("image/*")
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Cámara") },
+                        text = { Text(stringResource(R.string.comment_option_camera)) },
                         onClick = {
                             showPickerMenu = false
                             cameraLauncher.launch(photoUri)
@@ -355,7 +357,7 @@ fun CommentInput(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Enviar"
+                    contentDescription = stringResource(R.string.send)
                 )
             }
         }
@@ -380,7 +382,7 @@ fun TicketTopBar(
         IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart)) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Volver atrás",
+                contentDescription = stringResource(R.string.topbar_back),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
@@ -394,10 +396,20 @@ fun TicketTopBar(
                 .clickable { onTitleClick() }
         )
         if (isOwnComment) {
-            IconButton(onClick = onDoneClick, modifier = Modifier.align(Alignment.CenterEnd)) {
+            OutlinedButton(
+                onClick = onDoneClick,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp),
+                shape = MaterialTheme.shapes.small,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            ) {
                 Icon(
-                    Icons.Default.Done,
-                    contentDescription = "Confirmar edición",
+                    painter = painterResource(id = R.drawable.ic_save),
+                    contentDescription = stringResource(R.string.topbar_confirm_edit),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
@@ -425,6 +437,7 @@ fun TicketContent(
     onFieldChange: (String, String, String, String) -> Unit,
     getUserName: (String, (String) -> Unit) -> Unit,
     showTicketDialog: () -> Unit,
+    onBackClick: () -> Unit,
     onSubTicketClick: (boardId: String, ticketId: String) -> Unit
 ) {
     val isCreator = currentUserId == ticket.createdBy
@@ -438,7 +451,7 @@ fun TicketContent(
     var urgExpanded by remember { mutableStateOf(false) }
     var memExpanded by remember { mutableStateOf(false) }
     val assignedName = members.find { it.id == assignedTo }?.name
-        ?: "Selecciona miembro"
+        ?: stringResource(R.string.create_ticket_placeholder_select_member)
 
     Column(
         modifier = Modifier
@@ -458,7 +471,7 @@ fun TicketContent(
             onValueChange = {
                 onFieldChange(it, description, urgency.toString(), assignedTo)
             },
-            label = { Text("Título") },
+            label = { Text(stringResource(R.string.title)) },
             enabled = isCreator,
             modifier = Modifier.fillMaxWidth()
         )
@@ -469,7 +482,7 @@ fun TicketContent(
             onValueChange = {
                 onFieldChange(title, it, urgency.toString(), assignedTo)
             },
-            label = { Text("Descripción") },
+            label = { Text(stringResource(R.string.description)) },
             enabled = isCreator,
             modifier = Modifier
                 .fillMaxWidth()
@@ -493,7 +506,7 @@ fun TicketContent(
                 onValueChange = {},
                 readOnly = true,
                 enabled = isCreator,
-                label = { Text("Urgencia") },
+                label = { Text(stringResource(R.string.urgency)) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(urgExpanded)
                 },
@@ -539,7 +552,7 @@ fun TicketContent(
                 onValueChange = {},
                 readOnly = true,
                 enabled = isCreator,
-                label = { Text("Asignado a") },
+                label = { Text(stringResource(R.string.create_ticket_label_assigned_to)) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(memExpanded)
                 },
@@ -560,7 +573,7 @@ fun TicketContent(
                             if (member.photo != null) {
                                 AsyncImage(
                                     model = member.photo,
-                                    contentDescription = "Foto de ${member.name}",
+                                    contentDescription = stringResource(R.string.cd_member_photo, member.name),
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape),
@@ -614,12 +627,12 @@ fun TicketContent(
                 onClick = { showTicketDialog() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Crear tarea relacionada")
+                Text(stringResource(R.string.button_create_related))
             }
 
             if (subTickets.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
-                Text("Subtareas", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.label_subtasks), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
 
                 Column {
@@ -673,7 +686,7 @@ fun TicketContent(
                 onClick = { onSubTicketClick(boardId, ticket.parentId) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ir a la tarea principal")
+                Text(stringResource(R.string.button_go_to_parent))
             }
         }
 
@@ -710,7 +723,6 @@ fun TicketContent(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CommentCard(
     comment: Comment,
@@ -758,7 +770,7 @@ fun CommentCard(
                                 .data(comment.imageUrl)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Imagen ampliada",
+                            contentDescription = stringResource(R.string.dialog_image_enlarged),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 200.dp)
@@ -788,15 +800,17 @@ fun CommentCard(
                             value = editedText,
                             onValueChange = { editedText = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Editar comentario") }
+                            label = { Text(stringResource(R.string.comment_edit_label)) }
                         )
                         Spacer(Modifier.height(8.dp))
                         Row(
                             horizontalArrangement = Arrangement.End,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            TextButton(onClick = { onEditConfirm(editedText) }) { Text("Guardar") }
-                            TextButton(onClick = onEditToggle) { Text("Cancelar") }
+                            TextButton(onClick = {
+                                onEditConfirm(editedText)
+                            }) { Text(stringResource(R.string.save)) }
+                            TextButton(onClick = onEditToggle) { Text(stringResource(R.string.cancel)) }
                         }
                     } else {
                         comment.imageUrl?.let { imageUrl ->
@@ -807,7 +821,7 @@ fun CommentCard(
                                     .placeholder(R.drawable.placeholder_image)
                                     .transformations(RoundedCornersTransformation(8f))
                                     .build(),
-                                contentDescription = "Imagen del comentario",
+                                contentDescription = stringResource(R.string.dialog_image_comment),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 100.dp, max = 200.dp)
@@ -828,7 +842,7 @@ fun CommentCard(
                         if (comment.edited) {
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "(Editado)",
+                                text = stringResource(R.string.label_edited),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -837,14 +851,14 @@ fun CommentCard(
 
                         if (!isOwnComment) {
                             Text(
-                                text = "Por: $userName",
+                                text = stringResource(R.string.label_comment_by, userName),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Spacer(Modifier.height(2.dp))
                         }
 
                         Text(
-                            text = "Fecha: ${formatDate(comment.createdAt)}",
+                            text = stringResource(R.string.label_comment_date, formatDate(comment.createdAt)),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -857,14 +871,14 @@ fun CommentCard(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Editar") },
+                        text = { Text(stringResource(R.string.edit)) },
                         onClick = {
                             showMenu = false
                             onEditToggle()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Borrar") },
+                        text = { Text(stringResource(R.string.delete)) },
                         onClick = {
                             showMenu = false
                             onDeleteClick()
@@ -895,13 +909,13 @@ fun CreateTicketDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nuevo Ticket") },
+        title = { Text(stringResource(R.string.create_ticket_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Título") },
+                    label = { Text(stringResource(R.string.title)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -910,7 +924,7 @@ fun CreateTicketDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Descripción") },
+                    label = { Text(stringResource(R.string.description)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 100.dp),
@@ -928,7 +942,7 @@ fun CreateTicketDialog(
                         value = selectedUrgency.label,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Urgencia") },
+                        label = { Text(stringResource(R.string.urgency)) },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth()
@@ -964,10 +978,10 @@ fun CreateTicketDialog(
                 ) {
                     OutlinedTextField(
                         value = members.find { it.id == assignedToId }?.name
-                            ?: "Selecciona miembro",
+                            ?: stringResource(R.string.create_ticket_placeholder_select_member),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Asignado a") },
+                        label = { Text(stringResource(R.string.create_ticket_label_assigned_to)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memExpanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -985,7 +999,7 @@ fun CreateTicketDialog(
                                     if (member.photo != null) {
                                         AsyncImage(
                                             model = member.photo,
-                                            contentDescription = "Foto de ${member.name}",
+                                            contentDescription = stringResource(R.string.cd_member_photo, member.name),
                                             modifier = Modifier
                                                 .size(32.dp)
                                                 .clip(CircleShape),
@@ -1029,12 +1043,12 @@ fun CreateTicketDialog(
                     assignedToId
                 )
             }) {
-                Text("Crear")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

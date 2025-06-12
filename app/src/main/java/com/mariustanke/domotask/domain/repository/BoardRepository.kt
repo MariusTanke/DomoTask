@@ -22,8 +22,6 @@ class BoardRepository @Inject constructor(
     private fun statusesCollection(boardId: String): CollectionReference =
         boardsCollection.document(boardId).collection("statuses")
 
-    /** ─── Boards ────────────────────────────────────────────────────────── */
-
     fun getBoards(): Flow<List<Board>> = callbackFlow {
         val listener = boardsCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -102,6 +100,7 @@ class BoardRepository @Inject constructor(
                 ?: emptyList()
             trySend(tickets)
         }
+
         awaitClose { listener.remove() }
     }
 
@@ -153,6 +152,7 @@ class BoardRepository @Inject constructor(
         val ref = ticketsCollection(boardId).document()
         val ticketWithId = ticket.copy(id = ref.id)
         ref.set(ticketWithId).await()
+
         return ref.id
     }
 
@@ -167,6 +167,7 @@ class BoardRepository @Inject constructor(
             .document()
         val withId = subTicket.copy(id = ref.id)
         ref.set(withId).await()
+
         return ref.id
     }
 
@@ -176,6 +177,7 @@ class BoardRepository @Inject constructor(
             .set(ticket)
             .await()
     }
+
 
     suspend fun deleteTicket(boardId: String, ticketId: String) {
         ticketsCollection(boardId)

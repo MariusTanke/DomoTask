@@ -1,26 +1,25 @@
 package com.mariustanke.domotask.presentation.main
 
-import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.mariustanke.domotask.R
 import com.mariustanke.domotask.core.Screen
 import com.mariustanke.domotask.presentation.board.BoardScreen
 import com.mariustanke.domotask.presentation.home.HomeScreen
 import com.mariustanke.domotask.presentation.profile.ProfileScreen
-import com.mariustanke.domotask.presentation.settings.SettingsScreen
 import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
 @Composable
@@ -28,14 +27,14 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
     onLogoutClick: () -> Unit
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
     val navController = rememberNavController()
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
 
     val items = listOf(
-        BottomNavItem(Screen.Home.route, "Inicio", Icons.Default.Home),
+        BottomNavItem(Screen.Home.route, stringResource(R.string.home_title), Icons.Default.Home),
         BottomNavItem(Screen.Profile.route, "Perfil", Icons.Default.Person),
-        BottomNavItem(Screen.Settings.route, "Ajustes", Icons.Default.Settings),
-        BottomNavItem("logout", "Salir", Icons.Default.ExitToApp)
+        BottomNavItem("logout", "Salir", Icons.AutoMirrored.Filled.ExitToApp)
     )
 
     Scaffold(
@@ -46,9 +45,7 @@ fun MainScreen(
                         selected = currentDestination == item.route,
                         onClick = {
                             if (item.route == "logout") {
-                                viewModel.signOut()
-                                onLogoutClick()
-
+                                showLogoutDialog = true
                             } else {
                                 navController.navigate(item.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -80,9 +77,7 @@ fun MainScreen(
             }
             composable(
                 route = Screen.Board.route,
-                arguments = listOf(
-                    navArgument("boardId") { type = NavType.StringType }
-                )
+                arguments = listOf(navArgument("boardId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val boardId = backStackEntry.arguments?.getString("boardId") ?: ""
                 BoardScreen(
@@ -103,7 +98,9 @@ fun MainScreen(
                 val boardId = backStackEntry.arguments?.getString("boardId") ?: return@composable
                 val ticketId = backStackEntry.arguments?.getString("ticketId") ?: return@composable
                 TicketScreen(
-                    boardId = boardId, ticketId = ticketId, onBackToBoardClick = {
+                    boardId = boardId,
+                    ticketId = ticketId,
+                    onBackToBoardClick = {
                         navController.navigate(Screen.Board.createRoute(boardId))
                     },
                     onSubTicketClick = { bId, tId ->
@@ -112,7 +109,30 @@ fun MainScreen(
                 )
             }
             composable(Screen.Profile.route) { ProfileScreen() }
-            composable(Screen.Settings.route) { SettingsScreen() }
+        }
+
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("¿Estás seguro de que deseas cerrar sesión? ") },
+                text = {
+                    Text("")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.signOut()
+                        onLogoutClick()
+                        showLogoutDialog = false
+                    }) {
+                        Text("Sí, cerrar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
     }
 }

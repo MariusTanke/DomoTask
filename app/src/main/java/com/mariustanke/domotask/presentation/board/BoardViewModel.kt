@@ -91,10 +91,27 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    fun removeMember(boardId: String, userId: String) {
+    fun removeMember(boardId: String, userId: String, removeUserTickets: Boolean) {
         viewModelScope.launch {
             boardUseCases.removeMemberFromBoardUseCase(boardId, userId)
-            _members.update { list -> list.filterNot { it.id == userId } }
+            _members.update {
+                list -> list.filterNot { it.id == userId }
+            }
+
+            val userTickets = tickets.value.filter { it.createdBy == userId }
+
+            if (removeUserTickets) {
+                userTickets.forEach { ticket ->
+                    boardUseCases.deleteTicket(boardId, ticket.id)
+                }
+
+            } else {
+                if (board.value != null) {
+                    userTickets.forEach { ticket ->
+                        boardUseCases.updateTicket(boardId, ticket.copy(createdBy = board.value!!.createdBy))
+                    }
+                }
+            }
         }
     }
 
@@ -150,6 +167,12 @@ class BoardViewModel @Inject constructor(
             current.removeAll { it.id == statusId }
             boardUseCases.deleteBoardStatus(boardId, statusId)
             syncOrdersAndPersist(boardId, current)
+        }
+    }
+
+    fun deleteBoard(boardId: String) {
+        viewModelScope.launch {
+            boardUseCases.deleteBoard(boardId)
         }
     }
 }

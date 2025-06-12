@@ -1,11 +1,14 @@
 package com.mariustanke.domotask.presentation.splash
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mariustanke.domotask.R
 
 @Composable
 fun SplashScreen(
@@ -24,9 +27,14 @@ fun SplashScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize()
     ) {
-        Text("DOMES Task !!", style = MaterialTheme.typography.headlineLarge)
+        Image(
+            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            contentDescription = "Splash Icon",
+            modifier = Modifier
+                .size(350.dp)
+                .align(Alignment.Center)
+        )
     }
 }

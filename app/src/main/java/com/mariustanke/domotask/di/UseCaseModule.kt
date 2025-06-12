@@ -4,6 +4,7 @@ import com.mariustanke.domotask.domain.repository.AuthRepository
 import com.mariustanke.domotask.domain.repository.BoardRepository
 import com.mariustanke.domotask.domain.repository.UserRepository
 import com.mariustanke.domotask.domain.usecase.auth.CreateUserUseCase
+import com.mariustanke.domotask.domain.usecase.auth.GetUserFlowUseCase
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.auth.GetUserUseCase
 import com.mariustanke.domotask.domain.usecase.auth.UpdateFcmTokenUseCase
@@ -92,6 +93,7 @@ object UseCaseModule {
     ): UserUseCases {
         return UserUseCases(
             getUser = GetUserUseCase(userRepository),
+            getUserFlow = GetUserFlowUseCase(userRepository),
             createUser = CreateUserUseCase(userRepository),
             updateUser = UpdateUserUseCase(userRepository),
             updateFcmToken = UpdateFcmTokenUseCase(userRepository)

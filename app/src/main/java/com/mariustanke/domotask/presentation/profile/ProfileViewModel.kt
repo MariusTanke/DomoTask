@@ -72,8 +72,8 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             user.photo
                 ?.takeIf { it.isNotBlank() }
-                ?.let { oldUrl ->
-                    runCatching { storage.getReferenceFromUrl(oldUrl).delete().await() }
+                ?.let { oldPhoto ->
+                    runCatching { storage.getReferenceFromUrl(oldPhoto).delete().await() }
                 }
 
             val inputStream = appContext.contentResolver.openInputStream(uri)
@@ -106,7 +106,6 @@ class ProfileViewModel @Inject constructor(
             _profileState.value = ProfileState.Success(updatedUser)
         }
     }
-
 
     fun sendPasswordReset() {
         val email = authRepository.getCurrentUser()?.email

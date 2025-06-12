@@ -16,7 +16,11 @@ class AuthRepository @Inject constructor(
     private val googleSignInClient: GoogleSignInClient,
     private val firestore: FirebaseFirestore
 ) {
-    fun getGoogleSignInIntent(): Intent = googleSignInClient.signInIntent
+
+    fun getGoogleSignInIntent(): Intent {
+        googleSignInClient.signOut()
+        return googleSignInClient.signInIntent
+    }
 
     fun extractGoogleCredentialFromIntent(data: Intent?): AuthCredential? {
         return try {
