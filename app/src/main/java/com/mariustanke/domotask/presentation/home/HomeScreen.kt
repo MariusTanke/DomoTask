@@ -1,10 +1,8 @@
 package com.mariustanke.domotask.presentation.home
 
-import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -40,8 +38,10 @@ fun HomeScreen(
     var newBoardName by remember { mutableStateOf("") }
     var newBoardDesc by remember { mutableStateOf("") }
 
-    LaunchedEffect(viewModel.acceptRejectState.collectAsState().value) {
-        viewModel.acceptRejectState.value?.let { result ->
+    val acceptRejectState by viewModel.acceptRejectState.collectAsState()
+
+    LaunchedEffect(acceptRejectState) {
+        acceptRejectState?.let { result ->
             if (result.isSuccess) {
                 Toast.makeText(context, "Acción completada", Toast.LENGTH_SHORT).show()
             } else {
@@ -232,51 +232,47 @@ fun BoardCard(
     }
 }
 
-@SuppressLint("UnrememberedMutableState")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     title: String,
     invitations: List<String> = emptyList(),
     onInviteClick: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(start = 16.dp)
-        )
-
-        if (invitations.isNotEmpty()) {
-            OutlinedButton(
-                onClick = onInviteClick,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp),
-                shape = MaterialTheme.shapes.small,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            ) {
-                Icon(
-                    Icons.Default.Email,
-                    contentDescription = stringResource(R.string.topbar_invitations),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = "${invitations.size}",
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        actions = {
+            if (invitations.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = onInviteClick,
+                    modifier = Modifier.padding(end = 8.dp),
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Email,
+                        contentDescription = stringResource(R.string.topbar_invitations),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${invitations.size}",
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
-    }
+    )
 }

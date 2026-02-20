@@ -1,7 +1,5 @@
 package com.mariustanke.domotask.presentation.board
 
-import android.annotation.SuppressLint
-import android.widget.Space
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -35,12 +33,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -415,7 +410,7 @@ fun BoardScreen(
 }
 
 
-@SuppressLint("UnrememberedMutableState")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     boardName: String,
@@ -432,49 +427,33 @@ fun TopBar(
     onDeleteBoard: () -> Unit,
     onFilterSelected: (String?) -> Unit,
 ) {
-    var barWidthPx by remember { mutableIntStateOf(0) }
-    var menuWidthPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val offsetDp by derivedStateOf {
-        val dx = (barWidthPx - menuWidthPx).coerceAtLeast(0)
-        with(density) { dx.toDp() }
-    }
     var showFilterMenu by remember { mutableStateOf(false) }
-
     var showConfirmDeleteBoardDialog by remember { mutableStateOf(false) }
     var showConfirmLeaveDialog by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .onGloballyPositioned { barWidthPx = it.size.width }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    TopAppBar(
+        title = {
+            Text(
+                text = boardName,
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = boardName,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.weight(1f) // Ocupa el espacio restante
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        actions = {
+            Box {
                 OutlinedButton(
                     onClick = { showFilterMenu = true },
                     shape = MaterialTheme.shapes.small,
@@ -491,6 +470,38 @@ fun TopBar(
                     )
                 }
 
+                DropdownMenu(
+                    expanded = showFilterMenu,
+                    onDismissRequest = { showFilterMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.filter_all)) },
+                        onClick = {
+                            onFilterSelected(null)
+                            showFilterMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.filter_unassigned)) },
+                        onClick = {
+                            onFilterSelected("")
+                            showFilterMenu = false
+                        }
+                    )
+                    HorizontalDivider()
+                    members.forEach { user ->
+                        DropdownMenuItem(
+                            text = { Text(user.name) },
+                            onClick = {
+                                onFilterSelected(user.id)
+                                showFilterMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Box {
                 OutlinedButton(
                     onClick = onMenuClick,
                     shape = MaterialTheme.shapes.small,
@@ -506,83 +517,50 @@ fun TopBar(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-            }
-        }
 
-        DropdownMenu(
-            expanded = showFilterMenu,
-            onDismissRequest = { showFilterMenu = false },
-            offset = DpOffset(x = (-40).dp, y = 0.dp)
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.filter_all)) },
-                onClick = {
-                    onFilterSelected(null)
-                    showFilterMenu = false
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = onDismissMenu
+                ) {
+                    if (currentUserId == boardOwnerId) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_manage_members)) },
+                            onClick = onMemberManagementClick
+                        )
+                        HorizontalDivider()
+
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_edit_board)) },
+                            onClick = onDismissMenu
+                        )
+                        HorizontalDivider()
+
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.add_status)) },
+                            onClick = onAddStatusClick
+                        )
+                        HorizontalDivider()
+
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_delete_board)) },
+                            onClick = {
+                                showConfirmDeleteBoardDialog = true
+                                onDismissMenu()
+                            }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_leave_board)) },
+                            onClick = {
+                                showConfirmLeaveDialog = true
+                                onDismissMenu()
+                            }
+                        )
+                    }
                 }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.filter_unassigned)) },
-                onClick = {
-                    onFilterSelected("")
-                    showFilterMenu = false
-                }
-            )
-            HorizontalDivider()
-            members.forEach { user ->
-                DropdownMenuItem(
-                    text = { Text(user.name) },
-                    onClick = {
-                        onFilterSelected(user.id)
-                        showFilterMenu = false
-                    }
-                )
             }
         }
-
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = onDismissMenu,
-            offset = DpOffset(x = offsetDp, y = 0.dp),
-            modifier = Modifier.onGloballyPositioned { menuWidthPx = it.size.width }
-        ) {
-            if (currentUserId == boardOwnerId) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_manage_members)) },
-                    onClick = onMemberManagementClick
-                )
-                HorizontalDivider()
-
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_edit_board)) },
-                    onClick = onDismissMenu
-                )
-                HorizontalDivider()
-
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.add_status)) },
-                    onClick = onAddStatusClick
-                )
-                HorizontalDivider()
-
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_delete_board)) },
-                    onClick = {
-                        showConfirmDeleteBoardDialog = true
-                        onDismissMenu()
-                    }
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_leave_board)) },
-                    onClick = {
-                        showConfirmLeaveDialog = true
-                        onDismissMenu()
-                    }
-                )
-            }
-        }
-    }
+    )
 
     if (showConfirmDeleteBoardDialog) {
         AlertDialog(
@@ -821,12 +799,6 @@ fun PostItTicketCard(
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(Color.Black.copy(alpha = 0.05f))
-                )
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -840,7 +812,7 @@ fun PostItTicketCard(
                     Text(
                         text = ticket.title,
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
 
@@ -848,7 +820,7 @@ fun PostItTicketCard(
                         Text(
                             text = ticket.description,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }

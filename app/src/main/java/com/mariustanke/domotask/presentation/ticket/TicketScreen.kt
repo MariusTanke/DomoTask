@@ -1,6 +1,5 @@
 package com.mariustanke.domotask.presentation.ticket
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -124,7 +122,6 @@ fun TicketScreen(
     }
 }
 
-@SuppressLint("UnrememberedMutableState")
 @Composable
 fun TicketScaffold(
     ticket: Ticket,
@@ -364,6 +361,7 @@ fun CommentInput(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketTopBar(
     title: String,
@@ -373,48 +371,48 @@ fun TicketTopBar(
     onDoneClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart)) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.topbar_back),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+    TopAppBar(
+        title = {
+            Text(
+                text = if (editingTitle) "Editando título" else title,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.clickable { onTitleClick() }
             )
-        }
-
-        Text(
-            text = if (editingTitle) "Editando título" else title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .clickable { onTitleClick() }
-        )
-        if (isOwnComment) {
-            OutlinedButton(
-                onClick = onDoneClick,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 16.dp),
-                shape = MaterialTheme.shapes.small,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            ) {
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_save),
-                    contentDescription = stringResource(R.string.topbar_confirm_edit),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.topbar_back),
                 )
             }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        actions = {
+            if (isOwnComment) {
+                OutlinedButton(
+                    onClick = onDoneClick,
+                    modifier = Modifier.padding(end = 8.dp),
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_save),
+                        contentDescription = stringResource(R.string.topbar_confirm_edit),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -657,9 +655,9 @@ fun TicketContent(
                                             .size(8.dp)
                                             .background(
                                                 color = when (sub.urgency) {
-                                                    in 1..2 -> Color.Green
-                                                    3 -> Color.Yellow
-                                                    else -> Color.Red
+                                                    in 1..2 -> MaterialTheme.colorScheme.secondary
+                                                    3 -> MaterialTheme.colorScheme.tertiary
+                                                    else -> MaterialTheme.colorScheme.error
                                                 },
                                                 shape = CircleShape
                                             )

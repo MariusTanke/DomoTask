@@ -175,7 +175,7 @@ fun ProfileScreen(
                         Spacer(Modifier.height(25.dp))
 
                         Text(
-                            text = "Consultar políticas de uso",
+                            text = stringResource(R.string.view_terms),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable {
                                 showTermsDialog = true
@@ -224,7 +224,7 @@ fun ProfileScreen(
 
             if (showTermsDialog) {
                 AlertDialog(
-                    onDismissRequest = {  },
+                    onDismissRequest = { showTermsDialog = false },
                     title = { Text(stringResource(R.string.terms_title)) },
                     text = {
                         Column(

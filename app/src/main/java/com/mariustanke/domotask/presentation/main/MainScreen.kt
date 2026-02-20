@@ -22,6 +22,8 @@ import com.mariustanke.domotask.presentation.home.HomeScreen
 import com.mariustanke.domotask.presentation.profile.ProfileScreen
 import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
+private const val LOGOUT_ROUTE = "logout"
+
 @Composable
 fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
@@ -33,8 +35,8 @@ fun MainScreen(
 
     val items = listOf(
         BottomNavItem(Screen.Home.route, stringResource(R.string.home_title), Icons.Default.Home),
-        BottomNavItem(Screen.Profile.route, "Perfil", Icons.Default.Person),
-        BottomNavItem("logout", "Salir", Icons.AutoMirrored.Filled.ExitToApp)
+        BottomNavItem(Screen.Profile.route, stringResource(R.string.nav_profile), Icons.Default.Person),
+        BottomNavItem(LOGOUT_ROUTE, stringResource(R.string.nav_logout), Icons.AutoMirrored.Filled.ExitToApp)
     )
 
     Scaffold(
@@ -42,9 +44,9 @@ fun MainScreen(
             NavigationBar {
                 items.forEach { item ->
                     NavigationBarItem(
-                        selected = currentDestination == item.route,
+                        selected = currentDestination == item.route && item.route != LOGOUT_ROUTE,
                         onClick = {
-                            if (item.route == "logout") {
+                            if (item.route == LOGOUT_ROUTE) {
                                 showLogoutDialog = true
                             } else {
                                 navController.navigate(item.route) {
@@ -114,22 +116,20 @@ fun MainScreen(
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
-                title = { Text("¿Estás seguro de que deseas cerrar sesión? ") },
-                text = {
-                    Text("")
-                },
+                title = { Text(stringResource(R.string.logout_confirm_title)) },
+                text = { Text("") },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.signOut()
                         onLogoutClick()
                         showLogoutDialog = false
                     }) {
-                        Text("Sí, cerrar")
+                        Text(stringResource(R.string.logout_confirm_yes))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showLogoutDialog = false }) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )

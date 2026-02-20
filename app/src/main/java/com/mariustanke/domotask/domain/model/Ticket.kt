@@ -9,7 +9,7 @@ data class Ticket(
     val createdBy: String = "",
     val assignedTo: String = "",
     val edited: Boolean = false,
-    val parentId: String? = "",
+    val parentId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 
     val subTickets: List<Ticket> = emptyList()

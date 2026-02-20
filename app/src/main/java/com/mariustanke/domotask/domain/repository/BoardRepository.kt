@@ -69,14 +69,10 @@ class BoardRepository @Inject constructor(
     }
 
     suspend fun addMemberToBoard(boardId: String, userId: String) {
-        val boardRef = boardsCollection.document(boardId)
-        firestore.runTransaction { tx ->
-            val bSnap = tx.get(boardRef)
-            val current = bSnap.get("members") as? List<String> ?: emptyList()
-            if (!current.contains(userId)) {
-                tx.update(boardRef, "members", current + userId)
-            }
-        }.await()
+        boardsCollection
+            .document(boardId)
+            .update("members", FieldValue.arrayUnion(userId))
+            .await()
     }
 
     suspend fun removeMemberFromBoard(boardId: String, userId: String) {
@@ -161,13 +157,9 @@ class BoardRepository @Inject constructor(
         ticketId: String,
         subTicket: Ticket
     ): String {
-        val ref = ticketsCollection(boardId)
-            .document(ticketId)
-            .collection("subtickets")
-            .document()
-        val withId = subTicket.copy(id = ref.id)
+        val ref = ticketsCollection(boardId).document()
+        val withId = subTicket.copy(id = ref.id, parentId = ticketId)
         ref.set(withId).await()
-
         return ref.id
     }
 

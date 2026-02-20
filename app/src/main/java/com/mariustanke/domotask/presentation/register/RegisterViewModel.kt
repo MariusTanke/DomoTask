@@ -16,32 +16,26 @@ class RegisterViewModel @Inject constructor(
     private val userUseCases: UserUseCases
 ) : ViewModel() {
 
-
     private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val registerState = _registerState.asStateFlow()
 
     fun register(name: String, email: String, password: String) {
         _registerState.value = RegisterState.Loading
-        authRepository.registerWithEmail(name, email, password) { success, error, user ->
-            if (success && user != null) {
-                viewModelScope.launch {
-                    try {
-                        userUseCases.createUser(user)
-                        _registerState.value = RegisterState.Success
-                    } catch (e: Exception) {
-                        _registerState.value = RegisterState.Error("Error al guardar el usuario: ${e.message}")
-                    }
-                }
-            } else {
-                _registerState.value = RegisterState.Error(error)
+        viewModelScope.launch {
+            try {
+                val user = authRepository.registerWithEmail(name, email, password)
+                userUseCases.createUser(user)
+                _registerState.value = RegisterState.Success
+            } catch (e: Exception) {
+                _registerState.value = RegisterState.Error(e.localizedMessage)
             }
         }
     }
 }
 
 sealed class RegisterState {
-    object Idle : RegisterState()
-    object Loading : RegisterState()
-    object Success : RegisterState()
+    data object Idle : RegisterState()
+    data object Loading : RegisterState()
+    data object Success : RegisterState()
     data class Error(val message: String?) : RegisterState()
 }
