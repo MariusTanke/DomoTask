@@ -11,6 +11,9 @@ import com.mariustanke.domotask.domain.model.User
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,13 +59,12 @@ class BoardViewModel @Inject constructor(
         viewModelScope.launch {
             boardUseCases.getBoard(boardId).collect { board ->
                 _board.value = board
-                board.members
-                    .mapNotNull { memberId ->
-                        userUseCases.getUser(memberId)
+                val users = coroutineScope {
+                    board.members.map { memberId ->
+                        async { userUseCases.getUser(memberId) }
                     }
-                    .let { usersList ->
-                        _members.value = usersList
-                    }
+                }.awaitAll().filterNotNull()
+                _members.value = users
             }
         }
     }

@@ -16,7 +16,7 @@ fun SplashScreen(
     onLogin: () -> Unit,
     onHome: () -> Unit
 ) {
-    val isLoggedIn = viewModel.isUserLoggedIn.value
+    val isLoggedIn by viewModel.isUserLoggedIn.collectAsState()
 
     LaunchedEffect(isLoggedIn) {
         when (isLoggedIn) {

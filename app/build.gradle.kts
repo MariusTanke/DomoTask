@@ -20,11 +20,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "GOOGLE_CLIENT_ID",
+            "\"120644447690-oc56asv52vk8f3hv3hi7e94eiu3okbo0.apps.googleusercontent.com\""
+        )
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -40,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,13 +63,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.animation.android)
     implementation(libs.androidx.foundation.android)
-    implementation(libs.androidx.foundation.android)
-    implementation(libs.play.services.fido)
-    implementation(libs.play.services.fido)
-    implementation(libs.play.services.fido)
     implementation(libs.play.services.fido)
     implementation(libs.firebase.storage.ktx)
     implementation(libs.androidx.ui.text.google.fonts)
+    implementation(libs.material)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

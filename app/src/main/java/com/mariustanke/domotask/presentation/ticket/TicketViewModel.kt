@@ -104,20 +104,31 @@ class TicketViewModel @Inject constructor(
         viewModelScope.launch {
             val imageUrl = imageUri?.let { uri ->
                 val inputStream = appContext.contentResolver.openInputStream(uri)
+                    ?: return@let null
                 val original = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
+                inputStream.close()
 
-                val scaled = Bitmap.createScaledBitmap(
-                    original,
-                    original.width / 2,
-                    original.height / 2,
-                    true
+                if (original == null) return@let null
+
+                val maxDim = 1024
+                val scale = minOf(
+                    maxDim.toFloat() / original.width,
+                    maxDim.toFloat() / original.height,
+                    1f
                 )
-                original.recycle()
-
-                val baos = ByteArrayOutputStream().apply {
-                    scaled.compress(Bitmap.CompressFormat.JPEG, 30, this)
+                val scaled = if (scale < 1f) {
+                    Bitmap.createScaledBitmap(
+                        original,
+                        (original.width * scale).toInt(),
+                        (original.height * scale).toInt(),
+                        true
+                    ).also { original.recycle() }
+                } else {
+                    original
                 }
+
+                val baos = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, 50, baos)
                 scaled.recycle()
                 val data = baos.toByteArray()
                 baos.close()

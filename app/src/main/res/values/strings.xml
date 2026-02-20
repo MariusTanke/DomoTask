@@ -138,4 +138,11 @@
     <string name="label_comment_by">Por: %1$s</string>
     <string name="label_comment_date">Fecha: %1$s</string>
     <string name="button_create">Crear</string>
+
+    <!-- MainScreen -->
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_logout">Salir</string>
+    <string name="logout_confirm_title">¿Estás seguro de que deseas cerrar sesión?</string>
+    <string name="logout_confirm_yes">Sí, cerrar</string>
+    <string name="view_terms">Consultar políticas de uso</string>
 </resources>

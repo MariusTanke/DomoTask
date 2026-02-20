@@ -6,7 +6,7 @@ data class User(
     val email: String = "",
     val photo: String? = null,
     val invitationCode: String = "",
-    val invitations: ArrayList<String> = ArrayList(),
+    val invitations: List<String> = emptyList(),
     val fcmToken: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -75,11 +75,7 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun updateFcmToken(uid: String, token: String) {
-        try {
-            usersCollection.document(uid).update("fcmToken", token).await()
-        } catch (e: Exception) {
-            throw e
-        }
+        usersCollection.document(uid).update("fcmToken", token).await()
     }
 
     suspend fun updateUser(user: User) {
@@ -91,10 +87,8 @@ class UserRepository @Inject constructor(
 
     suspend fun getUserByInvitationCode(code: String): User? {
         val snap = usersCollection.whereEqualTo("invitationCode", code).get().await()
-        return snap.documents
-            .firstOrNull()
-            ?.toObject(User::class.java)
-            ?.copy(id = snap.documents.first().id)
+        val doc = snap.documents.firstOrNull() ?: return null
+        return doc.toObject(User::class.java)?.copy(id = doc.id)
     }
 
     suspend fun addInvitation(userId: String, boardId: String) {

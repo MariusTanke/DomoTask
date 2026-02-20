@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,52 +29,38 @@ class LoginViewModel @Inject constructor(
 
     fun loginWithEmail(email: String, password: String) {
         _loginState.value = LoginResult.Loading
-        authRepository.signInWithEmail(email, password) { success, error ->
-            if (success) {
-                val user = FirebaseAuth.getInstance().currentUser
-                if (user != null) {
-                    FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-                        viewModelScope.launch {
-                            try {
-                                userUseCases.updateFcmToken(user.uid, token)
-                            } catch (e: Exception) {
-                                Log.e("FCM", "Error guardando token: ${e.message}")
-                            }
-                        }
-                    }
-                }
+        viewModelScope.launch {
+            try {
+                authRepository.signInWithEmail(email, password)
+                updateFcmToken()
                 _loginState.value = LoginResult.Success
-            } else {
-                _loginState.value = LoginResult.Error(error)
+            } catch (e: Exception) {
+                _loginState.value = LoginResult.Error(e.localizedMessage)
             }
         }
     }
 
     private fun loginWithGoogle(credential: AuthCredential) {
         _loginState.value = LoginResult.Loading
-        authRepository.signInWithGoogle(credential) { success, error, user ->
-            if (success && user != null) {
-                viewModelScope.launch {
-                    try {
-                        userUseCases.createUser(user)
-                        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-                            viewModelScope.launch {
-                                try {
-                                    userUseCases.updateFcmToken(user.id, token)
-                                } catch (e: Exception) {
-                                    Log.e("FCM", "Error guardando token: ${e.message}")
-                                }
-                            }
-                        }
-
-                        _loginState.value = LoginResult.Success
-                    } catch (e: Exception) {
-                        _loginState.value = LoginResult.Error("Error al guardar el usuario: ${e.message}")
-                    }
-                }
-            } else {
-                _loginState.value = LoginResult.Error(error)
+        viewModelScope.launch {
+            try {
+                val user = authRepository.signInWithGoogle(credential)
+                userUseCases.createUser(user)
+                updateFcmToken()
+                _loginState.value = LoginResult.Success
+            } catch (e: Exception) {
+                _loginState.value = LoginResult.Error(e.localizedMessage)
             }
+        }
+    }
+
+    private suspend fun updateFcmToken() {
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            val uid = authRepository.getCurrentUser()?.uid ?: return
+            userUseCases.updateFcmToken(uid, token)
+        } catch (e: Exception) {
+            Log.e("FCM", "Error guardando token: ${e.message}")
         }
     }
 
@@ -84,16 +71,16 @@ class LoginViewModel @Inject constructor(
         }
 
         _resetState.value = ResetResult.Loading
-        FirebaseAuth.getInstance()
-            .sendPasswordResetEmail(email)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    _resetState.value = ResetResult.Success
-                } else {
-                    val errorMsg = task.exception?.localizedMessage ?: "Error al enviar correo"
-                    _resetState.value = ResetResult.Error(errorMsg)
-                }
+        viewModelScope.launch {
+            try {
+                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
+                _resetState.value = ResetResult.Success
+            } catch (e: Exception) {
+                _resetState.value = ResetResult.Error(
+                    e.localizedMessage ?: "Error al enviar correo"
+                )
             }
+        }
     }
 
     fun getGoogleSignInIntent(): android.content.Intent {
@@ -118,8 +105,8 @@ sealed class LoginResult {
 }
 
 sealed class ResetResult {
-    object Idle : ResetResult()
-    object Loading : ResetResult()
-    object Success : ResetResult()
+    data object Idle : ResetResult()
+    data object Loading : ResetResult()
+    data object Success : ResetResult()
     data class Error(val message: String) : ResetResult()
 }

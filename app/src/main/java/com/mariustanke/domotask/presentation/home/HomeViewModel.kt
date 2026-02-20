@@ -10,6 +10,9 @@ import com.mariustanke.domotask.domain.uiModels.BoardUiModel
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
 import com.mariustanke.domotask.domain.usecase.board.BoardUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -52,14 +55,18 @@ class HomeViewModel @Inject constructor(
             boardList.filter { it.members.contains(currentUid) }
         }
         .map { list ->
-            list.map { board ->
-                val creatorName = userUseCases.getUser(board.createdBy)?.name ?: board.createdBy
-                BoardUiModel(
-                    id = board.id,
-                    name = board.name,
-                    description = board.description,
-                    createdByName = creatorName
-                )
+            coroutineScope {
+                list.map { board ->
+                    async {
+                        val creatorName = userUseCases.getUser(board.createdBy)?.name ?: board.createdBy
+                        BoardUiModel(
+                            id = board.id,
+                            name = board.name,
+                            description = board.description,
+                            createdByName = creatorName
+                        )
+                    }
+                }.awaitAll()
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -70,14 +77,18 @@ class HomeViewModel @Inject constructor(
             boardList.filter { invites.contains(it.id) }
         }
         .map { list ->
-            list.map { board ->
-                val creatorName = userUseCases.getUser(board.createdBy)?.name ?: board.createdBy
-                BoardUiModel(
-                    id = board.id,
-                    name = board.name,
-                    description = board.description,
-                    createdByName = creatorName
-                )
+            coroutineScope {
+                list.map { board ->
+                    async {
+                        val creatorName = userUseCases.getUser(board.createdBy)?.name ?: board.createdBy
+                        BoardUiModel(
+                            id = board.id,
+                            name = board.name,
+                            description = board.description,
+                            createdByName = creatorName
+                        )
+                    }
+                }.awaitAll()
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
