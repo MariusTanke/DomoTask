@@ -40,6 +40,8 @@ import com.mariustanke.domotask.domain.enums.UrgencyEnum
 import com.mariustanke.domotask.domain.model.Comment
 import com.mariustanke.domotask.domain.model.Ticket
 import com.mariustanke.domotask.domain.model.User
+import com.mariustanke.domotask.ui.theme.appGradientBackground
+import androidx.compose.ui.text.font.FontWeight
 import com.mariustanke.domotask.presentation.board.initials
 import java.io.File
 import java.text.SimpleDateFormat
@@ -203,6 +205,7 @@ fun TicketScaffold(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(appGradientBackground())
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
@@ -300,9 +303,10 @@ fun CommentInput(
                 onValueChange = onCommentChange,
                 singleLine = false,
                 label = { Text(stringResource(R.string.comment_label_new)) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 60.dp)
+                    .heightIn(min = 56.dp)
             )
 
             Spacer(Modifier.width(8.dp))
@@ -311,14 +315,14 @@ fun CommentInput(
                 FilledIconButton(
                     onClick = { showPickerMenu = true },
                     modifier = Modifier
-                        .height(56.dp)
-                        .aspectRatio(1f)
-                        .padding(top = 6.dp),
-                    shape = RoundedCornerShape(4.dp)
+                        .height(48.dp)
+                        .aspectRatio(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_upload_file),
-                        contentDescription = "Adjuntar imagen"
+                        contentDescription = "Adjuntar imagen",
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 DropdownMenu(
@@ -347,14 +351,14 @@ fun CommentInput(
             FilledIconButton(
                 onClick = onSendClick,
                 modifier = Modifier
-                    .height(56.dp)
-                    .aspectRatio(1f)
-                    .padding(top = 6.dp),
-                shape = RoundedCornerShape(4.dp)
+                    .height(48.dp)
+                    .aspectRatio(1f),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = stringResource(R.string.send)
+                    contentDescription = stringResource(R.string.send),
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -371,48 +375,48 @@ fun TicketTopBar(
     onDoneClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                text = if (editingTitle) "Editando título" else title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.clickable { onTitleClick() }
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.topbar_back),
+    Column {
+        TopAppBar(
+            windowInsets = WindowInsets(0, 0, 0, 0),
+            title = {
+                Text(
+                    text = if (editingTitle) "Editando título" else title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.clickable { onTitleClick() }
                 )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
-        actions = {
-            if (isOwnComment) {
-                OutlinedButton(
-                    onClick = onDoneClick,
-                    modifier = Modifier.padding(end = 8.dp),
-                    shape = MaterialTheme.shapes.small,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
+            },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_save),
-                        contentDescription = stringResource(R.string.topbar_confirm_edit),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.topbar_back),
                     )
                 }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            actions = {
+                if (isOwnComment) {
+                    IconButton(
+                        onClick = onDoneClick,
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_save),
+                            contentDescription = stringResource(R.string.topbar_confirm_edit),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -643,16 +647,17 @@ fun TicketContent(
                                     .clickable {
                                         onSubTicketClick(boardId, sub.id)
                                     },
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                shape = RoundedCornerShape(10.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                             ) {
                                 Row(
                                     modifier = Modifier
-                                        .padding(12.dp),
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Box(
                                         Modifier
-                                            .size(8.dp)
+                                            .size(10.dp)
                                             .background(
                                                 color = when (sub.urgency) {
                                                     in 1..2 -> MaterialTheme.colorScheme.secondary
@@ -662,14 +667,16 @@ fun TicketContent(
                                                 shape = CircleShape
                                             )
                                     )
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(12.dp))
                                     Column {
                                         Text(sub.title, style = MaterialTheme.typography.bodyLarge)
+                                        Spacer(Modifier.height(2.dp))
                                         Text(
                                             "Asignado a: ${
                                                 members.find { it.id == sub.assignedTo }?.name ?: "—"
                                             }",
-                                            style = MaterialTheme.typography.bodySmall
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -692,7 +699,21 @@ fun TicketContent(
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
 
-        Text("Comentarios", style = MaterialTheme.typography.titleMedium)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "Comentarios",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "(${comments.size})",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Spacer(Modifier.height(8.dp))
         comments
             .sortedByDescending { it.createdAt }

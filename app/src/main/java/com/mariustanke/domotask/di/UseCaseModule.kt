@@ -2,6 +2,8 @@ package com.mariustanke.domotask.di
 
 import com.mariustanke.domotask.domain.repository.AuthRepository
 import com.mariustanke.domotask.domain.repository.BoardRepository
+import com.mariustanke.domotask.domain.repository.InventoryRepository
+import com.mariustanke.domotask.domain.repository.ProductRepository
 import com.mariustanke.domotask.domain.repository.UserRepository
 import com.mariustanke.domotask.domain.usecase.auth.CreateUserUseCase
 import com.mariustanke.domotask.domain.usecase.auth.GetUserFlowUseCase
@@ -34,6 +36,15 @@ import com.mariustanke.domotask.domain.usecase.comment.CommentUseCases
 import com.mariustanke.domotask.domain.usecase.comment.DeleteCommentUseCase
 import com.mariustanke.domotask.domain.usecase.comment.GetCommentsUseCase
 import com.mariustanke.domotask.domain.usecase.comment.UpdateCommentUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.AddInventoryItemUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.DeleteInventoryItemUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.GetInventoryHistoryUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.GetInventoryItemsUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.GetItemHistoryUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.GetProductsUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.InventoryUseCases
+import com.mariustanke.domotask.domain.usecase.inventory.SaveInventoryTransactionUseCase
+import com.mariustanke.domotask.domain.usecase.inventory.SearchProductsUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -97,6 +108,24 @@ object UseCaseModule {
             createUser = CreateUserUseCase(userRepository),
             updateUser = UpdateUserUseCase(userRepository),
             updateFcmToken = UpdateFcmTokenUseCase(userRepository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideInventoryUseCases(
+        inventoryRepository: InventoryRepository,
+        productRepository: ProductRepository
+    ): InventoryUseCases {
+        return InventoryUseCases(
+            getInventoryItems = GetInventoryItemsUseCase(inventoryRepository),
+            addInventoryItem = AddInventoryItemUseCase(inventoryRepository),
+            saveTransaction = SaveInventoryTransactionUseCase(inventoryRepository),
+            deleteInventoryItem = DeleteInventoryItemUseCase(inventoryRepository),
+            getInventoryHistory = GetInventoryHistoryUseCase(inventoryRepository),
+            getItemHistory = GetItemHistoryUseCase(inventoryRepository),
+            searchProducts = SearchProductsUseCase(productRepository),
+            getProducts = GetProductsUseCase(productRepository)
         )
     }
 }

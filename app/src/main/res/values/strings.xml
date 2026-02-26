@@ -27,6 +27,10 @@
     <string name="button_login">Iniciar sesión</string>
     <string name="text_sign_in_with_google">Iniciar sesión con Google</string>
     <string name="text_no_account">¿No tienes cuenta? Regístrate</string>
+    <string name="text_welcome_back">Bienvenido de nuevo</string>
+    <string name="text_login_subtitle">Inicia sesión para continuar</string>
+    <string name="text_no_account_prefix">¿No tienes cuenta?</string>
+    <string name="text_register">Regístrate</string>
     <string name="error_unknown">Error desconocido</string>
     <string name="back">Volver atrás</string>
     <string name="add">Añadir</string>
@@ -73,6 +77,14 @@
     <string name="create_ticket_error_empty_title">El título no puede estar vacío</string>
     <string name="create_ticket_label_assigned_to">Asignado a</string>
     <string name="create_ticket_placeholder_select_member">Selecciona miembro</string>
+
+    <!-- Board Sections -->
+    <string name="section_tickets">Tickets</string>
+    <string name="section_members">Miembros</string>
+    <string name="section_inventory">Inventario</string>
+    <string name="section_settings">Ajustes</string>
+    <string name="coming_soon">Próximamente</string>
+    <string name="label_owner">Propietario</string>
 
     <!-- HomeScreen -->
     <string name="toast_action_completed">Acción completada</string>
@@ -138,6 +150,32 @@
     <string name="label_comment_by">Por: %1$s</string>
     <string name="label_comment_date">Fecha: %1$s</string>
     <string name="button_create">Crear</string>
+
+    <!-- Inventory -->
+    <string name="inventory_empty">No hay productos en el inventario</string>
+    <string name="inventory_add_product">Añadir producto</string>
+    <string name="inventory_search_hint">Buscar producto…</string>
+    <string name="inventory_no_results">No se encontraron productos</string>
+    <string name="inventory_quantity">Cantidad</string>
+    <string name="inventory_unit">Unidad</string>
+    <string name="inventory_low_stock">Stock bajo</string>
+    <string name="inventory_add_quantity">Añadir cantidad</string>
+    <string name="inventory_remove_quantity">Quitar cantidad</string>
+    <string name="inventory_set_quantity">Ajustar cantidad</string>
+    <string name="inventory_history">Historial</string>
+    <string name="inventory_no_history">No hay movimientos registrados</string>
+    <string name="inventory_comment">Comentario (opcional)</string>
+    <string name="inventory_confirm_delete">¿Estás seguro de que deseas eliminar este producto del inventario?</string>
+    <string name="inventory_current_quantity">Cantidad actual</string>
+    <string name="inventory_save_changes">Guardar cambios</string>
+    <string name="inventory_discard_changes">Descartar</string>
+    <string name="inventory_pending_badge">Nuevo</string>
+    <string name="inventory_changes_count">%1$d cambios pendientes</string>
+    <string name="inventory_save_comment_hint">Comentario (opcional)</string>
+    <string name="inventory_transaction_items">%1$d productos modificados</string>
+    <string name="inventory_save_title">Guardar cambios de inventario</string>
+    <string name="inventory_saving">Guardando…</string>
+    <string name="inventory_deleted_badge">Eliminado</string>
 
     <!-- MainScreen -->
     <string name="nav_profile">Perfil</string>

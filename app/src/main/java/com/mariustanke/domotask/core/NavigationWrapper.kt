@@ -1,71 +1,82 @@
 package com.mariustanke.domotask.core
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavType
-import androidx.navigation.compose.*
-import androidx.navigation.navArgument
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import com.mariustanke.domotask.presentation.login.LoginScreen
 import com.mariustanke.domotask.presentation.main.MainScreen
 import com.mariustanke.domotask.presentation.register.RegisterScreen
 import com.mariustanke.domotask.presentation.splash.SplashScreen
-import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
 @Composable
 fun NavigationWrapper() {
-    val navController = rememberNavController()
+    val backStack = rememberSaveable(saver = backStackSaver()) { mutableStateListOf<Any>(Splash) }
 
-    NavHost(navController = navController, startDestination = Screen.Splash.route) {
-        composable(Screen.Splash.route) {
-            SplashScreen(
-                onLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        transitionSpec = {
+            (fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 }) togetherWith
+                (fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 })
+        },
+        popTransitionSpec = {
+            (fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 }) togetherWith
+                (fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 })
+        },
+        entryProvider = entryProvider {
+            entry<Splash> {
+                SplashScreen(
+                    onLogin = {
+                        backStack.clear()
+                        backStack.add(Login)
+                    },
+                    onHome = {
+                        backStack.clear()
+                        backStack.add(Main)
                     }
-                },
-                onHome = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
-                }
-            )
-        }
+                )
+            }
 
-        composable(Screen.Login.route) {
-            LoginScreen(
-                onRegisterClick = {
-                    navController.navigate(Screen.Register.route)
-                },
-                onLoginSuccess = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+            entry<Login> {
+                LoginScreen(
+                    onRegisterClick = {
+                        backStack.add(Register)
+                    },
+                    onLoginSuccess = {
+                        backStack.clear()
+                        backStack.add(Main)
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable(Screen.Register.route) {
-            RegisterScreen(
-                onRegisterSuccess = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
+            entry<Register> {
+                RegisterScreen(
+                    onRegisterSuccess = {
+                        backStack.clear()
+                        backStack.add(Main)
+                    },
+                    onBackToLogin = {
+                        backStack.removeLastOrNull()
                     }
-                },
-                onBackToLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
-                    }
-                }
-            )
-        }
+                )
+            }
 
-        composable(Screen.Main.route) {
-            MainScreen(
-                onLogoutClick = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Main.route) { inclusive = true }
+            entry<Main> {
+                MainScreen(
+                    onLogoutClick = {
+                        backStack.clear()
+                        backStack.add(Login)
                     }
-                }
-            )
+                )
+            }
         }
-    }
+    )
 }

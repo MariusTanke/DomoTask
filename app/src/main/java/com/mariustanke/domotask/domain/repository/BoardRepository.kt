@@ -25,7 +25,7 @@ class BoardRepository @Inject constructor(
     fun getBoards(): Flow<List<Board>> = callbackFlow {
         val listener = boardsCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
             val boards = snapshot?.documents
@@ -39,7 +39,7 @@ class BoardRepository @Inject constructor(
     fun getBoard(boardId: String): Flow<Board> = callbackFlow {
         val listener = boardsCollection.document(boardId)
             .addSnapshotListener { snap, err ->
-                if (err != null) { close(err); return@addSnapshotListener }
+                if (err != null) { close(); return@addSnapshotListener }
                 snap?.toObject(Board::class.java)
                     ?.copy(id = snap.id)
                     ?.let { trySend(it) }
@@ -88,7 +88,7 @@ class BoardRepository @Inject constructor(
         val ref = ticketsCollection(boardId)
         val listener = ref.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
             val tickets = snapshot?.documents
@@ -111,7 +111,7 @@ class BoardRepository @Inject constructor(
 
         val ticketListener = ticketRef.addSnapshotListener { snap, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
             snap?.toObject(Ticket::class.java)
@@ -126,7 +126,7 @@ class BoardRepository @Inject constructor(
             .whereEqualTo("parentId", ticketId)
         val childrenListener = childrenQuery.addSnapshotListener { snap, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
             childTickets = snap?.documents
@@ -200,7 +200,7 @@ class BoardRepository @Inject constructor(
             .collection("comments")
         val listener = ref.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
             val comments = snapshot?.documents
@@ -243,7 +243,7 @@ class BoardRepository @Inject constructor(
         val listener = statusesCollection(boardId)
             .orderBy("order")
             .addSnapshotListener { snap, err ->
-                if (err != null) { close(err); return@addSnapshotListener }
+                if (err != null) { close(); return@addSnapshotListener }
                 val list = snap?.documents
                     ?.mapNotNull { it.toObject(Status::class.java)?.copy(id = it.id) }
                     ?: emptyList()
@@ -253,9 +253,10 @@ class BoardRepository @Inject constructor(
     }
 
     suspend fun createStatus(boardId: String, status: Status): String {
-        val ref = statusesCollection(boardId).document(status.id)
-        ref.set(status).await()
-        return status.id
+        val collection = statusesCollection(boardId)
+        val ref = if (status.id.isBlank()) collection.document() else collection.document(status.id)
+        ref.set(status.copy(id = ref.id)).await()
+        return ref.id
     }
 
     suspend fun updateStatus(boardId: String, status: Status) {

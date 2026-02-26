@@ -29,7 +29,7 @@ class UserRepository @Inject constructor(
         val docRef = usersCollection.document(uid)
         val registration: ListenerRegistration = docRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                close()
                 return@addSnapshotListener
             }
 

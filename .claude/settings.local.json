@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebSearch",
+      "WebFetch(domain:android-developers.googleblog.com)",
+      "Bash(ls:*)",
+      "Bash(./gradlew signingReport:*)",
+      "Bash(keytool -list:*)",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/keytool\" -list -v -keystore \"$USERPROFILE/.android/debug.keystore\" -alias androiddebugkey -storepass android)",
+      "Bash(./gradlew :app:compileDebugKotlin:*)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
+      "Bash(\"$JAVA_HOME/bin/keytool\" -list -v -keystore \"$USERPROFILE/.android/debug.keystore\" -alias androiddebugkey -storepass android)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew:*)",
+      "Bash(tail:*)",
+      "Bash(echo === $\\(basename \"$dir\"\\) ===:*)",
+      "Bash(identify:*)",
+      "Bash(magick:*)",
+      "Bash(echo Pillow not found:*)",
+      "Bash(echo no PIL:*)",
+      "Bash(pip install Pillow 2>/dev/null || pip3 install Pillow 2>/dev/null)",
+      "Bash(python:*)",
+      "Bash(grep ^e::*)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:androidpoet.medium.com)",
+      "WebFetch(domain:slack-chats.kotlinlang.org)",
+      "WebFetch(domain:cs.android.com)",
+      "WebFetch(domain:www.droidcon.com)",
+      "WebFetch(domain:joebirch.co)"
+    ]
+  }
+}

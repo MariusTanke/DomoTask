@@ -134,12 +134,15 @@ class BoardViewModel @Inject constructor(
 
     fun createBoardStatus(boardId: String, newStatusParam: Status) {
         viewModelScope.launch {
+            val newId = boardUseCases.createBoardStatus(boardId, newStatusParam)
+            val created = newStatusParam.copy(id = newId)
+
             val current = statuses.value
                 .sortedBy { it.order }
                 .toMutableList()
 
-            val insertIndex = (newStatusParam.order - 1).coerceIn(0, current.size)
-            current.add(insertIndex, newStatusParam)
+            val insertIndex = (created.order - 1).coerceIn(0, current.size)
+            current.add(insertIndex, created)
             syncOrdersAndPersist(boardId, current)
         }
     }
