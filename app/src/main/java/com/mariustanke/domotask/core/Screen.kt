@@ -21,6 +21,9 @@ data object Home
 data object Profile
 
 @Serializable
+data object Products
+
+@Serializable
 data class Board(val boardId: String)
 
 @Serializable

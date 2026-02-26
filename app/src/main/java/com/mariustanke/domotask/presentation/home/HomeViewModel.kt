@@ -49,6 +49,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private val _isBoardsLoading = MutableStateFlow(true)
+    val isBoardsLoading: StateFlow<Boolean> = _isBoardsLoading.asStateFlow()
+
     val boards: StateFlow<List<BoardUiModel>> = boardUseCases.getBoards()
         .combine(user) { boardList, user ->
             val currentUid = user?.id
@@ -69,6 +72,7 @@ class HomeViewModel @Inject constructor(
                 }.awaitAll()
             }
         }
+        .onEach { _isBoardsLoading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val invitations: StateFlow<List<BoardUiModel>> = boardUseCases.getBoards()

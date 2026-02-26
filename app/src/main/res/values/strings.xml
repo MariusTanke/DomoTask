@@ -176,6 +176,11 @@
     <string name="inventory_save_title">Guardar cambios de inventario</string>
     <string name="inventory_saving">Guardando…</string>
     <string name="inventory_deleted_badge">Eliminado</string>
+    <string name="inventory_search_items_hint">Buscar en inventario…</string>
+    <string name="inventory_clear_search">Limpiar búsqueda</string>
+    <string name="inventory_sort">Ordenar</string>
+    <string name="inventory_clear_filters">Limpiar</string>
+    <string name="inventory_no_results_filter">No se encontraron productos con estos filtros</string>
 
     <!-- MainScreen -->
     <string name="nav_profile">Perfil</string>
@@ -183,4 +188,19 @@
     <string name="logout_confirm_title">¿Estás seguro de que deseas cerrar sesión?</string>
     <string name="logout_confirm_yes">Sí, cerrar</string>
     <string name="view_terms">Consultar políticas de uso</string>
+
+    <!-- Products -->
+    <string name="nav_products">Productos</string>
+    <string name="products_title">Productos</string>
+    <string name="products_search_hint">Buscar producto…</string>
+    <string name="products_clear_search">Limpiar búsqueda</string>
+    <string name="products_sort">Ordenar</string>
+    <string name="products_clear_filters">Limpiar</string>
+    <string name="products_empty">No hay productos en el catálogo</string>
+    <string name="products_no_results">No se encontraron productos con estos filtros</string>
+    <string name="products_create">Crear producto</string>
+    <string name="products_edit">Editar producto</string>
+    <string name="products_category">Categoría</string>
+    <string name="products_confirm_delete_title">Eliminar producto</string>
+    <string name="products_confirm_delete_text">¿Estás seguro de que deseas eliminar "%1$s"? Se ocultará del catálogo y del inventario.</string>
 </resources>

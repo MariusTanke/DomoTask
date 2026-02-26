@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.mariustanke.domotask.domain.model.HistoryItemChange
 import com.mariustanke.domotask.domain.model.InventoryHistory
+import com.mariustanke.domotask.domain.enums.ProductCategory
 import com.mariustanke.domotask.domain.model.InventoryItem
 import com.mariustanke.domotask.domain.model.Product
 import com.mariustanke.domotask.domain.usecase.auth.UserUseCases
@@ -26,6 +27,15 @@ data class PendingChange(
     val isNew: Boolean,
     val isDeleted: Boolean = false
 )
+
+enum class InventorySortOption(val label: String) {
+    NAME_ASC("Nombre A-Z"),
+    NAME_DESC("Nombre Z-A"),
+    QUANTITY_ASC("Cantidad ↑"),
+    QUANTITY_DESC("Cantidad ↓"),
+    CATEGORY("Categoría"),
+    LAST_UPDATED("Última modificación")
+}
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
@@ -66,6 +76,18 @@ class InventoryViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _selectedCategories = MutableStateFlow<Set<ProductCategory>>(emptySet())
+    val selectedCategories: StateFlow<Set<ProductCategory>> = _selectedCategories.asStateFlow()
+
+    private val _sortOption = MutableStateFlow(InventorySortOption.NAME_ASC)
+    val sortOption: StateFlow<InventorySortOption> = _sortOption.asStateFlow()
+
+    private val _filteredItems = MutableStateFlow<List<InventoryItem>>(emptyList())
+    val filteredItems: StateFlow<List<InventoryItem>> = _filteredItems.asStateFlow()
+
     val currentUser: FirebaseUser? get() = firebaseAuth.currentUser
 
     private var currentBoardId: String? = null
@@ -86,6 +108,11 @@ class InventoryViewModel @Inject constructor(
                 _hasPendingChanges.value = pending.isNotEmpty()
                 _pendingCount.value = pending.size
             }
+        }
+        viewModelScope.launch {
+            combine(_displayItems, _searchQuery, _selectedCategories, _sortOption) { items, query, cats, sort ->
+                applyFiltersAndSort(items, query, cats, sort)
+            }.collect { _filteredItems.value = it }
         }
     }
 
@@ -351,12 +378,58 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun toggleCategory(category: ProductCategory) {
+        val current = _selectedCategories.value.toMutableSet()
+        if (category in current) current.remove(category) else current.add(category)
+        _selectedCategories.value = current
+    }
+
+    fun clearCategoryFilters() {
+        _selectedCategories.value = emptySet()
+    }
+
+    fun setSortOption(option: InventorySortOption) {
+        _sortOption.value = option
+    }
+
     fun clearError() {
         _error.value = null
     }
 
     fun getLowStockItems(): List<InventoryItem> {
         return _displayItems.value.filter { it.minQuantity > 0 && it.quantity <= it.minQuantity }
+    }
+
+    private fun applyFiltersAndSort(
+        items: List<InventoryItem>,
+        query: String,
+        categories: Set<ProductCategory>,
+        sort: InventorySortOption
+    ): List<InventoryItem> {
+        var result = items
+
+        if (query.isNotBlank()) {
+            result = result.filter { it.productName.contains(query, ignoreCase = true) }
+        }
+
+        if (categories.isNotEmpty()) {
+            result = result.filter { ProductCategory.fromValue(it.productCategory) in categories }
+        }
+
+        result = when (sort) {
+            InventorySortOption.NAME_ASC -> result.sortedBy { it.productName.lowercase() }
+            InventorySortOption.NAME_DESC -> result.sortedByDescending { it.productName.lowercase() }
+            InventorySortOption.QUANTITY_ASC -> result.sortedBy { it.quantity }
+            InventorySortOption.QUANTITY_DESC -> result.sortedByDescending { it.quantity }
+            InventorySortOption.CATEGORY -> result.sortedBy { it.productCategory }
+            InventorySortOption.LAST_UPDATED -> result.sortedByDescending { it.lastUpdatedAt }
+        }
+
+        return result
     }
 
     private fun mergeDisplayItems(

@@ -1,12 +1,20 @@
 package com.mariustanke.domotask.domain.repository
 
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.mariustanke.domotask.domain.model.Product
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+
+data class PaginatedResult(
+    val products: List<Product>,
+    val lastDocument: DocumentSnapshot?,
+    val hasMore: Boolean
+)
 
 class ProductRepository @Inject constructor(
     private val firestore: FirebaseFirestore
@@ -56,10 +64,40 @@ class ProductRepository @Inject constructor(
             .filter { it.name.contains(query, ignoreCase = true) }
     }
 
+    suspend fun getProductsPaginated(pageSize: Int, lastDocument: DocumentSnapshot?): PaginatedResult {
+        var query = productsCollection
+            .whereEqualTo("active", true)
+            .orderBy("name", Query.Direction.ASCENDING)
+            .limit(pageSize.toLong())
+
+        if (lastDocument != null) {
+            query = query.startAfter(lastDocument)
+        }
+
+        val snapshot = query.get().await()
+        val products = snapshot.documents.mapNotNull {
+            it.toObject(Product::class.java)?.copy(id = it.id)
+        }
+        val last = snapshot.documents.lastOrNull()
+        return PaginatedResult(
+            products = products,
+            lastDocument = last,
+            hasMore = snapshot.size() >= pageSize
+        )
+    }
+
     suspend fun createProduct(product: Product): String {
         val docRef = productsCollection.document()
         val withId = product.copy(id = docRef.id)
         docRef.set(withId).await()
         return docRef.id
+    }
+
+    suspend fun updateProduct(product: Product) {
+        productsCollection.document(product.id).set(product).await()
+    }
+
+    suspend fun deleteProduct(productId: String) {
+        productsCollection.document(productId).update("active", false).await()
     }
 }
