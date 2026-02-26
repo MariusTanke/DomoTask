@@ -27,6 +27,10 @@ class LoginViewModel @Inject constructor(
     private val _resetState = MutableStateFlow<ResetResult>(ResetResult.Idle)
     val resetState = _resetState.asStateFlow()
 
+    fun resetLoginState() {
+        _loginState.value = LoginResult.Idle
+    }
+
     fun loginWithEmail(email: String, password: String) {
         _loginState.value = LoginResult.Loading
         viewModelScope.launch {

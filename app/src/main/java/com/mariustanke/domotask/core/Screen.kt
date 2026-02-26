@@ -1,19 +1,27 @@
 package com.mariustanke.domotask.core
 
-sealed class Screen(val route: String) {
-    object Splash : Screen("splash")
-    object Login : Screen("login")
-    object Register : Screen("register")
-    object Main : Screen("main")
-    object Home : Screen("home")
-    object Profile : Screen("profile")
-    object Settings : Screen("settings")
+import kotlinx.serialization.Serializable
 
-    object Board : Screen("board/{boardId}") {
-        fun createRoute(boardId: String) = "board/$boardId"
-    }
+@Serializable
+data object Splash
 
-    object Ticket : Screen("ticket/{boardId}/{ticketId}") {
-        fun createRoute(boardId: String, ticketId: String) = "ticket/$boardId/$ticketId"
-    }
-}
+@Serializable
+data object Login
+
+@Serializable
+data object Register
+
+@Serializable
+data object Main
+
+@Serializable
+data object Home
+
+@Serializable
+data object Profile
+
+@Serializable
+data class Board(val boardId: String)
+
+@Serializable
+data class Ticket(val boardId: String, val ticketId: String)
