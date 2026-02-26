@@ -45,6 +45,12 @@ import com.mariustanke.domotask.domain.usecase.inventory.GetProductsUseCase
 import com.mariustanke.domotask.domain.usecase.inventory.InventoryUseCases
 import com.mariustanke.domotask.domain.usecase.inventory.SaveInventoryTransactionUseCase
 import com.mariustanke.domotask.domain.usecase.inventory.SearchProductsUseCase
+import com.mariustanke.domotask.domain.usecase.product.CreateProductUseCase
+import com.mariustanke.domotask.domain.usecase.product.DeleteProductUseCase
+import com.mariustanke.domotask.domain.usecase.product.GetAllProductsUseCase
+import com.mariustanke.domotask.domain.usecase.product.GetProductsPaginatedUseCase
+import com.mariustanke.domotask.domain.usecase.product.ProductUseCases
+import com.mariustanke.domotask.domain.usecase.product.UpdateProductUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -108,6 +114,20 @@ object UseCaseModule {
             createUser = CreateUserUseCase(userRepository),
             updateUser = UpdateUserUseCase(userRepository),
             updateFcmToken = UpdateFcmTokenUseCase(userRepository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideProductUseCases(
+        productRepository: ProductRepository
+    ): ProductUseCases {
+        return ProductUseCases(
+            getProducts = GetAllProductsUseCase(productRepository),
+            getProductsPaginated = GetProductsPaginatedUseCase(productRepository),
+            createProduct = CreateProductUseCase(productRepository),
+            updateProduct = UpdateProductUseCase(productRepository),
+            deleteProduct = DeleteProductUseCase(productRepository)
         )
     }
 

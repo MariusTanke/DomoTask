@@ -1,19 +1,26 @@
 package com.mariustanke.domotask.presentation.inventory
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mariustanke.domotask.R
+import com.mariustanke.domotask.domain.enums.ProductCategory
+import com.mariustanke.domotask.presentation.common.categoryEmoji
 
 @Composable
 fun InventoryContent(
@@ -35,6 +44,7 @@ fun InventoryContent(
     viewModel: InventoryViewModel = hiltViewModel()
 ) {
     val displayItems by viewModel.displayItems.collectAsState()
+    val filteredItems by viewModel.filteredItems.collectAsState()
     val pendingChanges by viewModel.pendingChanges.collectAsState()
     val hasPendingChanges by viewModel.hasPendingChanges.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
@@ -43,12 +53,23 @@ fun InventoryContent(
     val error by viewModel.error.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedCategories by viewModel.selectedCategories.collectAsState()
+    val sortOption by viewModel.sortOption.collectAsState()
 
+    var showFilters by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<com.mariustanke.domotask.domain.model.InventoryItem?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Derive categories present in the inventory
+    val presentCategories by remember(displayItems) {
+        derivedStateOf {
+            displayItems.map { ProductCategory.fromValue(it.productCategory) }.distinct().sorted()
+        }
+    }
 
     LaunchedEffect(boardId) {
         viewModel.loadInventory(boardId)
@@ -79,11 +100,111 @@ fun InventoryContent(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = { showFilters = !showFilters }) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = stringResource(R.string.inventory_search_items_hint)
+                    )
+                }
                 IconButton(onClick = { showHistory = true }) {
                     Icon(
                         Icons.Default.DateRange,
                         contentDescription = stringResource(R.string.inventory_history)
                     )
+                }
+            }
+
+            // Collapsible search, sort & filter section
+            AnimatedVisibility(
+                visible = showFilters,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    // Search bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.updateSearchQuery(it) },
+                        placeholder = { Text(stringResource(R.string.inventory_search_items_hint)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.inventory_clear_search)
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // Sort + Category filter chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SortDropdownButton(
+                            currentSort = sortOption,
+                            onSortSelected = { viewModel.setSortOption(it) }
+                        )
+
+                        // Vertical divider
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(24.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant)
+                        )
+
+                        presentCategories.forEach { category ->
+                            val selected = category in selectedCategories
+                            FilterChip(
+                                selected = selected,
+                                onClick = { viewModel.toggleCategory(category) },
+                                label = {
+                                    Text("${categoryEmoji(category)} ${category.label}")
+                                }
+                            )
+                        }
+
+                        if (selectedCategories.isNotEmpty()) {
+                            AssistChip(
+                                onClick = { viewModel.clearCategoryFilters() },
+                                label = { Text(stringResource(R.string.inventory_clear_filters)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
                 }
             }
 
@@ -95,52 +216,79 @@ fun InventoryContent(
                 )
             }
 
-            if (displayItems.isEmpty() && !isLoading) {
-                // Empty state
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.inventory_empty),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            when {
+                displayItems.isEmpty() && !isLoading -> {
+                    // Empty inventory state
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.inventory_empty),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = if (hasPendingChanges) 110.dp else 80.dp)
-                ) {
-                    items(displayItems, key = { it.id }) { item ->
-                        val change = pendingChanges[item.id]
-                        InventoryItemCard(
-                            item = item,
-                            isModified = change != null && !change.isNew && !change.isDeleted,
-                            isNew = change?.isNew == true,
-                            isDeleted = change?.isDeleted == true,
-                            originalQuantity = change?.originalQuantity,
-                            onQuickAdd = { viewModel.updateLocalQuantity(item.id, 1.0) },
-                            onQuickRemove = { viewModel.updateLocalQuantity(item.id, -1.0) },
-                            onEditClick = { editingItem = item },
-                            onDeleteClick = { viewModel.deleteItem(item.id) },
-                            onUndoDelete = { viewModel.undoDeleteItem(item.id) }
-                        )
+                filteredItems.isEmpty() && displayItems.isNotEmpty() -> {
+                    // No results for current filters
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.inventory_no_results_filter),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = if (hasPendingChanges) 110.dp else 80.dp)
+                    ) {
+                        items(filteredItems, key = { it.id }) { item ->
+                            val change = pendingChanges[item.id]
+                            InventoryItemCard(
+                                item = item,
+                                isModified = change != null && !change.isNew && !change.isDeleted,
+                                isNew = change?.isNew == true,
+                                isDeleted = change?.isDeleted == true,
+                                originalQuantity = change?.originalQuantity,
+                                onQuickAdd = { viewModel.updateLocalQuantity(item.id, 1.0) },
+                                onQuickRemove = { viewModel.updateLocalQuantity(item.id, -1.0) },
+                                onEditClick = { editingItem = item },
+                                onDeleteClick = { viewModel.deleteItem(item.id) },
+                                onUndoDelete = { viewModel.undoDeleteItem(item.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -272,6 +420,57 @@ fun InventoryContent(
             },
             onDismiss = { editingItem = null }
         )
+    }
+}
+
+@Composable
+private fun SortDropdownButton(
+    currentSort: InventorySortOption,
+    onSortSelected: (InventorySortOption) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        AssistChip(
+            onClick = { expanded = true },
+            label = { Text(currentSort.label) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = stringResource(R.string.inventory_sort),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            InventorySortOption.entries.forEach { option ->
+                val isSelected = option == currentSort
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option.label,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    onClick = {
+                        onSortSelected(option)
+                        expanded = false
+                    },
+                    trailingIcon = {
+                        if (isSelected) {
+                            Icon(
+                                Icons.Rounded.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 

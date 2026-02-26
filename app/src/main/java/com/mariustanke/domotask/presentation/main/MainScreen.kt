@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +37,7 @@ import com.mariustanke.domotask.R
 import com.mariustanke.domotask.core.*
 import com.mariustanke.domotask.presentation.board.BoardScreen
 import com.mariustanke.domotask.presentation.home.HomeScreen
+import com.mariustanke.domotask.presentation.product.ProductsScreen
 import com.mariustanke.domotask.presentation.profile.ProfileScreen
 import com.mariustanke.domotask.presentation.ticket.TicketScreen
 
@@ -54,6 +55,7 @@ fun MainScreen(
 
     val sideItems = listOf(
         BottomNavItem(Profile, stringResource(R.string.nav_profile), Icons.Default.Person),
+        BottomNavItem(Products, stringResource(R.string.nav_products), Icons.Default.ShoppingCart),
         BottomNavItem(LOGOUT_KEY, stringResource(R.string.nav_logout), Icons.AutoMirrored.Filled.ExitToApp)
     )
 
@@ -66,7 +68,15 @@ fun MainScreen(
                     tonalElevation = 0.dp,
                     modifier = Modifier.height(88.dp)
                 ) {
-                    // Profile (left)
+                    val navBarItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onSecondary,
+                        selectedTextColor = MaterialTheme.colorScheme.onSecondary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
+                        indicatorColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.2f)
+                    )
+
+                    // Profile (far left)
                     val profileItem = sideItems[0]
                     val profileSelected = currentScreen is Profile
                     NavigationBarItem(
@@ -89,16 +99,10 @@ fun MainScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondary,
-                            selectedTextColor = MaterialTheme.colorScheme.onSecondary,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
-                            indicatorColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.2f)
-                        )
+                        colors = navBarItemColors
                     )
 
-                    // Spacer for center button
+                    // Spacer (left of FAB)
                     NavigationBarItem(
                         selected = false,
                         onClick = {},
@@ -110,8 +114,46 @@ fun MainScreen(
                         )
                     )
 
-                    // Logout (right)
-                    val logoutItem = sideItems[1]
+                    // Spacer for center FAB
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = {},
+                        icon = {},
+                        label = {},
+                        enabled = false,
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.secondary
+                        )
+                    )
+
+                    // Products (right of FAB)
+                    val productsItem = sideItems[1]
+                    val productsSelected = currentScreen is Products
+                    NavigationBarItem(
+                        selected = productsSelected,
+                        onClick = {
+                            backStack.removeRange(1, backStack.size)
+                            backStack[0] = productsItem.key
+                        },
+                        icon = {
+                            Icon(
+                                productsItem.icon,
+                                contentDescription = productsItem.label,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                productsItem.label,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        colors = navBarItemColors
+                    )
+
+                    // Logout (far right)
+                    val logoutItem = sideItems[2]
                     NavigationBarItem(
                         selected = false,
                         onClick = { showLogoutDialog = true },
@@ -129,13 +171,7 @@ fun MainScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondary,
-                            selectedTextColor = MaterialTheme.colorScheme.onSecondary,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
-                            indicatorColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.2f)
-                        )
+                        colors = navBarItemColors
                     )
                 }
 
@@ -219,6 +255,10 @@ fun MainScreen(
 
                     entry<Profile> {
                         ProfileScreen()
+                    }
+
+                    entry<Products> {
+                        ProductsScreen()
                     }
                 }
             )

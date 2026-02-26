@@ -36,6 +36,7 @@ fun HomeScreen(
 ) {
     val boards by viewModel.boards.collectAsState()
     val invitations by viewModel.invitations.collectAsState()
+    val isBoardsLoading by viewModel.isBoardsLoading.collectAsState()
 
     val context = LocalContext.current
 
@@ -90,33 +91,48 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            if (boards.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 64.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        stringResource(R.string.home_no_boards),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    boards.forEach { board ->
-                        BoardCard(
-                            board = board,
-                            onClick = { onNavigateToBoard(board.id) }
+            when {
+                isBoardsLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 64.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.secondary
                         )
+                    }
+                }
+                boards.isEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 64.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            stringResource(R.string.home_no_boards),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        boards.forEach { board ->
+                            BoardCard(
+                                board = board,
+                                onClick = { onNavigateToBoard(board.id) }
+                            )
+                        }
                     }
                 }
             }
